@@ -1,0 +1,3 @@
+tarifa usd 1000.00 + taxa usd 200.00
+IN 0%
+LA 3333 01JAN GRUSCL 0800 #1200

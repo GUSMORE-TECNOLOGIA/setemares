@@ -1,6 +1,12 @@
 from PySide6 import QtWidgets, QtCore
 from decimal import Decimal
-import json
+import asyncio
+from datetime import datetime
+from typing import List
+
+from cli.main import parse as parse_pnr
+from core.rules.pricing import compute_totals
+from pdf.generator import render_pdf
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -50,16 +56,68 @@ class MainWindow(QtWidgets.QMainWindow):
 		layout.addWidget(self.preview)
 		self.setCentralWidget(central)
 
+	def _cia_principal(self, trechos: List[str]) -> str:
+		if not trechos:
+			return "CIA"
+		first = trechos[0].strip().split()
+		return ''.join([ch for ch in first[0] if ch.isalpha()]).upper() if first else "CIA"
+
 	def on_generate(self):
-		# Placeholder: somente demonstração de coleta de dados
-		payload = {
-			"rav_percent": float(self.rav_pct.value()),
-			"fee": f"{self.fee.value():.2f}",
-			"incentivo_val": f"{self.incentivo_val.value():.2f}",
-			"incentivo_pct": float(self.incentivo_pct.value()),
-			"pnr_text": self.input_pnr.toPlainText(),
-		}
-		self.preview.setPlainText(json.dumps(payload, ensure_ascii=False, indent=2))
+		text = self.input_pnr.toPlainText()
+		if not text.strip():
+			QtWidgets.QMessageBox.warning(self, "PNR vazio", "Cole o PNR em texto para continuar.")
+			return
+		try:
+			parsed = parse_pnr(text)
+			tarifa = Decimal(parsed.get("tarifa", "0"))
+			taxas_base = Decimal(parsed.get("taxas_base", "0"))
+			fee = Decimal(parsed.get("fee", "0")) if self.fee.value() == 0 else Decimal(f"{self.fee.value():.2f}")
+			# Incentivo: preferir valor manual; caso contrário usar do parse (valor fixo tem prioridade)
+			incentivo_manual = Decimal(f"{self.incentivo_val.value():.2f}")
+			if incentivo_manual > 0:
+				incentivo = incentivo_manual
+			else:
+				incentivo = Decimal(parsed.get("incentivo", "0"))
+			# Incentivo % manual (aplicado se valor ainda zero)
+			if incentivo == 0 and self.incentivo_pct.value() > 0:
+				incentivo = tarifa * Decimal(self.incentivo_pct.value()) / Decimal(100)
+
+			# Validação básica dos críticos
+			if tarifa <= 0 or taxas_base < 0:
+				QtWidgets.QMessageBox.critical(self, "Dados insuficientes", "Não foi possível identificar 'tarifa' e/ou 'taxas'. Revise o texto do PNR.")
+				return
+
+			calcs = compute_totals(str(tarifa), str(taxas_base), float(self.rav_pct.value()), str(fee), str(incentivo))
+			cia = self._cia_principal(parsed.get("trechos", []))
+			now = datetime.now()
+			default_name = f"cotacao_{cia}_{now.strftime('%Y%m%d')}_{now.strftime('%H%M')}.pdf"
+			out_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Salvar PDF", default_name, "PDF (*.pdf)")
+			if not out_path:
+				return
+
+			data = {
+				"cia": cia,
+				"trechos": parsed.get("trechos", []),
+				"tarifa": parsed.get("tarifa", "0.00"),
+				"fee": str(fee),
+				"incentivo": str(incentivo),
+				"rav": calcs["rav"],
+				"taxas_exibidas": calcs["taxas_exibidas"],
+				"total": calcs["total"],
+				"bagagem": "",
+				"pagamento": "",
+				"condicoes": "",
+			}
+
+			# Renderizar PDF (bloqueante simples no MVP)
+			asyncio.run(render_pdf(data, template_dir="templates", out_pdf=out_path))
+			self.preview.setPlainText(
+				f"PDF gerado com sucesso em: {out_path}\n\n" \
+				f"CIA: {cia}\nTarifa: USD {data['tarifa']}\nRAV: USD {data['rav']}\nFee: USD {data['fee']}\n" \
+				f"Incentivo: USD {data['incentivo']}\nTaxas exibidas: USD {data['taxas_exibidas']}\nTotal: USD {data['total']}\n"
+			)
+		except Exception as e:
+			QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao gerar PDF: {e}")
 
 
 def main():
