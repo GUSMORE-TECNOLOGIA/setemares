@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8">
+	<title>Cotação de Aéreos — 7Mares</title>
+	<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+	<header class="header">
+		<img src="../assets/logo.png" alt="Sete Mares" class="logo">
+		<h1>COTAÇÃO DE AÉREOS</h1>
+	</header>
+
+	<section>
+		<h2>Com a {{ cia or 'Cia Aérea' }}:</h2>
+		<pre class="trechos">{{ "\n".join(trechos or []) }}</pre>
+	</section>
+
+	<section class="valores">
+		<p><strong>Valor por bilhete:</strong> USD {{ tarifa }} + USD {{ taxas_exibidas }} taxas. <strong>TOTAL USD {{ total }}</strong></p>
+		<ul>
+			<li>Tarifa base: USD {{ tarifa }}</li>
+			<li>RAV: USD {{ rav }}</li>
+			<li>Fee: USD {{ fee }}</li>
+			<li>Incentivo: USD {{ incentivo }}</li>
+			<li>Taxas exibidas: USD {{ taxas_exibidas }}</li>
+		</ul>
+	</section>
+
+	<section>
+		<p><strong>Franquia de bagagem:</strong> {{ bagagem or 'A confirmar conforme cia e tarifa.' }}</p>
+		<p><strong>Forma de pagamento:</strong> {{ pagamento or 'A combinar.' }}</p>
+		<p><strong>Condições:</strong> {{ condicoes or 'Conforme regras tarifárias e políticas de reembolso/alteração.' }}</p>
+	</section>
+
+	<footer class="rodape">
+		<small>
+			Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.<br>
+			Rua Dr. Renato Paes de Barros, 750 - 1º andar, Itaim Bibi - São Paulo, SP, 04530-001 — Tel: (+55 11) 3121-2888 — www.setemaresturismo.com.br
+		</small>
+	</footer>
+</body>
+</html>
