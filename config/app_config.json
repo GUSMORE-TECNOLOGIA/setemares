@@ -1,0 +1,8 @@
+{
+	"rav_percent_default": 10,
+	"parcelas_default": 4,
+	"multa_base_default": 100,
+	"reembolsavel_default": false,
+	"bagagem_default": "2 x 23kg por bilhete",
+	"pagamento_default": "Entrada à vista referente às taxas de embarque e saldo em até {parcelas}x sem juros no cartão de crédito."
+}

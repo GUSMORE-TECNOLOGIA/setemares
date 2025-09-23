@@ -7,11 +7,12 @@ def q2(value: Decimal | str | float) -> Decimal:
 
 
 def compute_totals(tarifa: str | float | Decimal, taxas_base: str | float | Decimal, rav_percent: int | float, fee: str | float | Decimal, incentivo: str | float | Decimal) -> Dict[str, str]:
-	"""Calcula RAV, taxas exibidas e total por bilhete (MVP).
+	"""Calcula RAV, taxas exibidas, comissão (lucro) e total por bilhete.
 
-	Regras (confirmadas):
+	Regras:
 	- RAV = tarifa_base * (rav_percent/100)
-	- Taxas exibidas = taxas_base + RAV + fee + incentivo
+	- Comissão (lucro) = RAV + fee + incentivo
+	- Taxas exibidas = taxas_base + Comissão
 	- Total = tarifa_base + taxas_exibidas
 	- Arredondamento: 2 casas, ROUND_HALF_UP
 	"""
@@ -21,11 +22,13 @@ def compute_totals(tarifa: str | float | Decimal, taxas_base: str | float | Deci
 	incentivo_d = Decimal(str(incentivo))
 
 	rav = q2(tarifa_d * Decimal(rav_percent) / Decimal(100))
-	taxas_exibidas = q2(taxas_base_d + rav + fee_d + incentivo_d)
+	comissao = q2(rav + fee_d + incentivo_d)
+	taxas_exibidas = q2(taxas_base_d + comissao)
 	total = q2(tarifa_d + taxas_exibidas)
 
 	return {
 		"rav": str(rav),
+		"comissao": str(comissao),
 		"taxas_exibidas": str(taxas_exibidas),
 		"total": str(total),
 	}

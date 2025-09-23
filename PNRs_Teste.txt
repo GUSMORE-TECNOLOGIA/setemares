@@ -1,0 +1,84 @@
+PNRs DE TESTE - 7Mares Cotador
+=====================================
+
+PNR SIMPLES:
+LA 8084   22NOV GRULHR HS1  2340  #1405 
+BA  748   23NOV LHRGVA HS1  1745   2030
+IB  618   28NOV GVAMAD HK1  1835   2040
+LA 8065   28NOV MADGRU HK1  2255  #0530
+
+tarifa usd 4419.00 + txs usd 400.00 
+
+pagto 4x - comissão 7%
+
+Troca e reembolsa sem multa 
+2pc 23kg
+
+=====================================
+
+PNR MÚLTIPLO (4 opções):
+DL  104   14OCT GRUATL HS1  2250  #0735
+DL  855   15OCT ATLBOS HS1  0958   1235
+DL  638   25NOV BOSATL HS1  1525   1825
+DL  269   25NOV ATLGRU HS1  2200  #0935
+
+tarifa usd 2999.00 + txs usd 90.00 *Exe/Internos em eco
+
+tarifa usd 1988.00 + txs usd 90.00 *Pre
+
+tarifa usd  981.00 + txs usd 90.00 *Eco
+
+pagto 6x - net net
+
+2pc 32kg
+1pc 23kg
+2pc 23kg/pre
+
+==
+
+Direto opera no dia seguinte
+
+LA 8164   15OCT GRUBOS HS1  2245  #0735
+LA 8165   26NOV BOSGRU HS1  0855   2055
+
+tarifa usd  627.00 + txs usd 128.00 *Eco
+
+tarifa usd 4821.00 + txs usd 450.00 *Exe
+
+pagto 4x - comissão 7%
+
+1pc 23kg/eco
+2pc 23kg/exe
+
+==
+
+LA 8164   30NOV GRUBOS HS1  2240  #0635   
+LA 8165   18DEC BOSGRU HS1  0855   2055 
+
+tarifa usd 1390.00 + txs usd 196.00 *Eco
+
+tarifa usd 5438.00 + txs usd 535.00 *Exe
+
+pagto 4x - comissão 7%
+
+1pc 23kg/eco
+2pc 23kg/exe
+
+==
+
+DL  104   30NOV GRUATL   2345  #0735
+DL  855   01DEC ATLBOS   0950   1228
+DL  322   18DEC BOSATL   1340   1636
+DL  105   18DEC ATLGRU   1815  #0540
+
+tarifa usd 3700.00 + txs usd 90.00 *Exe/Internos em eco
+
+tarifa usd 2514.00 + txs usd 90.00 *Pre
+
+tarifa usd 1319.00 + txs usd 90.00 *Eco
+
+pagto 6x - net net
+
+2pc 32kg
+1pc 23kg
+2pc 23kg/pre

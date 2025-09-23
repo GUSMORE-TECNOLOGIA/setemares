@@ -1,1 +1,55 @@
-body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:18mm}h1,h2{margin:0 0 8px 0}.header{display:flex;align-items:center;gap:16px;margin-bottom:12px}.logo{height:56px}.trechos{background:#f7f7f7;border:1px solid #eee;padding:8px}.valores ul{margin:8px 0 0 16px}.rodape{margin-top:18mm;color:#555}
+body{font-family:Arial,Helvetica,sans-serif;color:#0f172a;margin:18mm;background:#f8fafc}
+h1{font-size:24px;letter-spacing:0.5px;margin:0 0 2px}
+h2,.subtitle{font-size:13px;color:#334155;margin:0 0 8px;font-weight:600}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;border-bottom:2px solid #e2e8f0;padding:14px;border-radius:12px;background:linear-gradient(180deg,#ffffff,#f1f5f9)}
+.title{max-width:75%}
+.logo{height:56px}
+.badge{font-size:11px;color:#0f172a;background:#e2e8f0;border:1px solid #cbd5e1;display:inline-block;padding:3px 8px;border-radius:999px;margin:8px 0}
+.card{border:1px solid #e5e7eb;background:#fff;padding:10px;margin-top:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.summary{border:1px solid #e5e7eb;background:#f8fafc;padding:10px}
+.summary-line{display:flex;justify-content:space-between;margin:4px 0}
+.summary-line.highlight{background:#eef2ff;padding:6px;border-radius:4px}
+.voos{width:100%;border-collapse:collapse;margin-top:8px}
+.voos th,.voos td{border:1px solid #e5e7eb;padding:6px 8px;font-size:11px;vertical-align:middle}
+.voos thead th{background:#0f172a;color:#ffffff;font-weight:700}
+.voos thead th{border-color:#0f172a}
+.tcenter{text-align:center}
+.voos td.center{text-align:center}
+.nowrap{white-space:nowrap}
+.rodape{margin-top:14mm;color:#64748b;font-size:11px}
+/* valores */
+.valores .valor-linha{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:10px 0}
+.valores .total{margin-left:auto;font-weight:700;background:#0f172a;color:#fff;padding:8px 14px;border-radius:10px;font-size:16px}
+
+/* layout one-page friendly */
+@page{size:A4;margin:18mm}
+body{line-height:1.35}
+.header{margin-bottom:12px}
+.voos{margin-top:6px}
+.rodape{margin-top:10mm}
+/* reduzir margem inferior da última seção para evitar quebra de página */
+section:last-of-type{margin-bottom:0}
+
+/* seção de blocos resumidos premium */
+.summary{border:1px solid #e2e8f0;background:#ffffff;padding:12px;border-radius:8px}
+.summary-line{display:flex;justify-content:space-between;margin:6px 0}
+.summary-line.highlight{background:#e0e7ff;padding:8px;border-radius:6px}
+.voos tbody tr:nth-child(odd){background:#f1f5f9}
+:root{--brand-navy:#0b1220;--brand-soft:#f1f5f9;--brand-line:#e2e8f0;--brand-gold:#c9a227}
+.voos{border-collapse:separate;border-spacing:0;width:100%;background:#fff;border:1px solid var(--brand-line);border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(17,24,39,.04);margin-top:6px}
+.voos thead th{background:var(--brand-navy);color:#fff;font-weight:800;text-transform:uppercase;letter-spacing:.4px;font-size:11.5px;padding:8px 10px;border-bottom:2px solid #0a1020}
+.voos th,.voos td{border:none;border-right:1px solid var(--brand-line);padding:6px 8px;font-size:11px;vertical-align:middle}
+.voos th:last-child,.voos td:last-child{border-right:none}
+.voos tbody tr:nth-child(odd){background:var(--brand-soft)}
+.voos tbody tr:hover{background:#eef2ff}
+.voos td.center{text-align:center}
+.valores{background:#fff;border:1px solid var(--brand-line);border-radius:12px;padding:12px;margin-top:8px;box-shadow:0 8px 20px rgba(17,24,39,.04)}
+.valores .total{margin-left:auto;display:inline-block;font-weight:800;font-size:18px;letter-spacing:.2px;color:#fff;background:var(--brand-navy);padding:10px 16px;border-radius:12px;border:1px solid #0a1020;box-shadow:0 6px 16px rgba(11,18,32,.18),inset 0 0 0 1px rgba(255,255,255,.06)}
+.valores .rotulo-total{color:#64748b;font-weight:600;margin-right:8px}
+body{background:linear-gradient(180deg,#f8fafc,#ffffff)}
+.voos td.airport{font-size:10px;line-height:1.25}
+/* v1.1: Múltiplas tarifas */
+.valores .valor-linha-small{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;margin:4px 0;font-size:13px}
+.valores .total-small{margin-left:auto;font-weight:700;font-size:14px;color:#0f172a}
+.valores .divisor{border:none;border-top:1px solid #e2e8f0;margin:8px 0}

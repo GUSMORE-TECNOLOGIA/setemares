@@ -4,3 +4,5 @@ playwright==1.47.0
 python-dateutil==2.9.0.post0
 Babel==2.15.0
 pytest==8.3.2
+python-docx==1.1.2
+docx2pdf==0.1.8

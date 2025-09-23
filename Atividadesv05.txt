@@ -1,0 +1,79 @@
+7Mares Cotador — Plano v0.5 (Múltiplas Cotações)
+Timestamp: 2025-08-20 23:27:05 -03:00
+
+Objetivo
+Gerar 1 PDF com N páginas de cotação + 1 página de Resumo Financeiro, permitindo capturar N cotações em sequência no app.
+
+Backlog técnico
+1) UI — novos controles
+- Adicionar QSpinBox `qtd_cotacao` (min=1, max=9, step=1, default=1) e persistir em QSettings (chave: ui/qtd_cotacao).
+- Adicionar QPushButton `btn_add_quote` ("Adicionar Cotação") ao lado do "Gerar PDF".
+  - Visibilidade: oculto quando qtd_cotacao == 1.
+  - Habilitação: (qtd_cotacao > 1) e (input_pnr não vazio).
+- Área de status com contador X/N e QListWidget `lista_cotacoes` (rolável) para snapshots.
+- Ações por item da lista: editar (recarregar no formulário) e remover (renumerar IDs).
+
+2) Estado de sessão
+- Nova estrutura em memória `self.sessao` com:
+  - qtdSolicitada:int, cotacoes:list[dict], tema:str, arquivoSaida:str
+- Funções utilitárias:
+  - snapshot_parametros() -> dict
+  - titulo_auto(parsed) -> str
+  - rota(parsed) -> str "AAA–BBB–..."
+  - data_saida(parsed/decoded) -> str (ISO e label curto)
+  - renumerar_ids()
+
+3) Fluxo de adicionar cotação
+- Handler `on_add_quote()`:
+  - Validar: qtd > 1 e PNR não vazio.
+  - parsed = parse_pnr(text)
+  - calcs = compute_totals(...)
+  - idx = len(sessao.cotacoes) + 1
+  - Montar objeto Cotacao (id/key/pnrRaw/trechos/parametros/totais/meta)
+  - Append em sessao.cotacoes
+  - Limpar somente input_pnr; manter demais campos.
+  - Atualizar contador X/N e lista visual.
+
+4) Validação antes de gerar
+- Em `on_generate()`:
+  - faltam = qtd - (len(sessao.cotacoes) + (input_pnr não vazio ? 1 : 0))
+  - Se faltam>0: QMessageBox/Toast com orientação.
+  - Se há PNR e cabe 1: confirmar inclusão automática como última (Yes/No).
+
+5) Geração de PDF multi-páginas
+- Criar módulo `pdf/builder.py` com classe `PdfBuilder`:
+  - add_pagina_cotacao(cot:dict) → usa templates/quote.html com dados do snapshot
+  - add_pagina_resumo(cotacoes:list[dict]) → novo template `templates/summary.html`
+  - save(path) → concatena páginas (usar Playwright: imprimir páginas sequencialmente no mesmo contexto ou gerar HTML único com page-breaks CSS)
+- CSS: reusar assets/styles.css e adicionar regras `.summary-table` e page-breaks (`.page{ page-break-after: always; }`).
+- Bookmarks/Outlines: opcional na v0.5 (se viável via PDF post-process); caso contrário, deixar para v2.0.
+
+6) Templates
+- Reusar `quote.html` (já premium). Injetar cabeçalho com ID amigável (COT-XX) e título curto (rota/saída).
+- Novo `summary.html`:
+  - Título "Resumo Financeiro das Cotações"
+  - Tabela: ID | Rota/Saída | Classe | Total (USD)
+  - Bloco de Soma geral destacado (estilo `.total`).
+
+7) Logs
+- Ao finalizar, salvar JSON da sessão em `logs/cotacoes/YYYY/MM/DD/{timestamp}_qtd{N}.json` com `SessaoCotacao`.
+- Adicionar diretório `logs/` ao .gitignore se não existir.
+
+8) Testes
+- Unitário para renumerar_ids()
+- Fluxo com qtd=1 (compatibilidade v1)
+- Fluxo com qtd=3: adicionar 2 cotações + formulário → confirmar inclusão da 3ª e gerar PDF
+- Soma geral = soma dos totalPorBilheteUSD dos snapshots
+
+9) Checklist de DoD
+- [ ] QSpinBox Qtd Cotação funcional e persistente
+- [ ] Botão "Adicionar Cotação" com estados corretos e snapshot
+- [ ] Lista de cotações com editar/remover/renumerar
+- [ ] Geração de PDF com N páginas + Resumo
+- [ ] Log JSON salvo
+- [ ] Estilo premium consistente no resumo
+- [ ] Testes passando
+
+Notas
+- Não alterar regras de negócio; recalcular totais no snapshot para congelar valores.
+- Garantir que remover/editar não corrompe a contagem e IDs.

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7Mares Cotador - Teste</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: 'Inter', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .status {
+            background: #22c55e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border: 1px solid #374151;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            color: white;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 5px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+        }
+        .success { background: #065f46; border-left: 4px solid #10b981; }
+        .error { background: #7f1d1d; border-left: 4px solid #ef4444; }
+        .warning { background: #92400e; border-left: 4px solid #f59e0b; }
+        .info { background: #1e3a8a; border-left: 4px solid #3b82f6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 7Mares Cotador - Teste de Decodificação</h1>
+            <p>Teste o sistema de decodificação de PNR</p>
+        </div>
+        
+        <div class="status">
+            ✅ Sistema funcionando! Arquivo HTML estático carregado com sucesso.
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Teste de Decodificação de PNR</h3>
+            <p>Cole um PNR abaixo para testar a decodificação:</p>
+            
+            <div class="input-group">
+                <label for="pnrInput">PNR para Decodificar:</label>
+                <textarea id="pnrInput" placeholder="PNR: ABC123&#10;1. LA 8084 Y 15JAN GRU-MAD HK1 16JAN 1P&#10;2. IB 1234 Y 16JAN MAD-GVA HK1 17JAN 1P&#10;3. AF 5678 Y 17JAN GVA-CDG HK1 18JAN 1P"></textarea>
+            </div>
+            
+            <button onclick="testDecoder()">🔍 Decodificar PNR</button>
+            <button onclick="clearResults()">🗑️ Limpar</button>
+            <button onclick="loadSamplePNR()">📋 Carregar PNR de Exemplo</button>
+            
+            <div id="decoderResult"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Estatísticas de Decodificação</h3>
+            <div id="stats">
+                <p>Total de códigos: <span id="totalCodes">0</span></p>
+                <p>Códigos reconhecidos: <span id="recognizedCodes">0</span></p>
+                <p>Códigos com erro: <span id="errorCodes">0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loadSamplePNR() {
+            document.getElementById('pnrInput').value = `PNR: ABC123
+1. LA 8084 Y 15JAN GRU-MAD HK1 16JAN 1P
+2. IB 1234 Y 16JAN MAD-GVA HK1 17JAN 1P
+3. AF 5678 Y 17JAN GVA-CDG HK1 18JAN 1P`;
+        }
+        
+        function clearResults() {
+            document.getElementById('decoderResult').innerHTML = '';
+            updateStats(0, 0, 0);
+        }
+        
+        function updateStats(total, recognized, errors) {
+            document.getElementById('totalCodes').textContent = total;
+            document.getElementById('recognizedCodes').textContent = recognized;
+            document.getElementById('errorCodes').textContent = errors;
+        }
+        
+        function testDecoder() {
+            const pnrInput = document.getElementById('pnrInput').value;
+            const result = document.getElementById('decoderResult');
+            
+            if (!pnrInput.trim()) {
+                result.innerHTML = '<div class="result warning">⚠️ Digite um PNR para testar</div>';
+                return;
+            }
+            
+            result.innerHTML = '<div class="result info">🔄 Decodificando PNR...</div>';
+            
+            // Simular decodificação
+            setTimeout(() => {
+                const lines = pnrInput.split('\n').filter(line => line.trim());
+                const pnrLine = lines[0];
+                const segments = lines.slice(1);
+                
+                let recognizedCodes = 0;
+                let errorCodes = 0;
+                let decodedSegments = [];
+                
+                // Simular decodificação de cada segmento
+                segments.forEach((segment, index) => {
+                    const parts = segment.split(' ');
+                    const airline = parts[1];
+                    const flight = parts[2];
+                    const route = parts[4];
+                    
+                    // Simular reconhecimento de códigos
+                    const isRecognized = Math.random() > 0.3; // 70% de chance de reconhecimento
+                    
+                    if (isRecognized) {
+                        recognizedCodes++;
+                        decodedSegments.push({
+                            airline: airline,
+                            flight: flight,
+                            route: route,
+                            status: '✅ Reconhecido'
+                        });
+                    } else {
+                        errorCodes++;
+                        decodedSegments.push({
+                            airline: airline,
+                            flight: flight,
+                            route: route,
+                            status: '❌ Erro'
+                        });
+                    }
+                });
+                
+                updateStats(segments.length, recognizedCodes, errorCodes);
+                
+                let html = '<div class="result success">';
+                html += '<h4>✅ Decodificação Concluída!</h4>';
+                html += `<p><strong>PNR:</strong> ${pnrLine}</p>`;
+                html += '<h5>Segmentos Decodificados:</h5>';
+                html += '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+                html += '<tr style="background: #374151;"><th style="padding: 8px; text-align: left;">Companhia</th><th style="padding: 8px; text-align: left;">Voo</th><th style="padding: 8px; text-align: left;">Rota</th><th style="padding: 8px; text-align: left;">Status</th></tr>';
+                
+                decodedSegments.forEach(seg => {
+                    html += `<tr style="border-bottom: 1px solid #374151;">`;
+                    html += `<td style="padding: 8px;">${seg.airline}</td>`;
+                    html += `<td style="padding: 8px;">${seg.flight}</td>`;
+                    html += `<td style="padding: 8px;">${seg.route}</td>`;
+                    html += `<td style="padding: 8px;">${seg.status}</td>`;
+                    html += `</tr>`;
+                });
+                
+                html += '</table>';
+                html += '</div>';
+                
+                result.innerHTML = html;
+            }, 1500);
+        }
+        
+        // Carregar PNR de exemplo automaticamente
+        loadSamplePNR();
+    </script>
+</body>
+</html>

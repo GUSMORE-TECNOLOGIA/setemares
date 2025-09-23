@@ -1,0 +1,114 @@
+7Mares Cotador — Pendências V2
+
+Objetivo: modernizar e padronizar a UI/UX com design system, tema claro/escuro sólido, selects/spinboxes corretos no Windows e CTA consistente. Não alterar regras de negócio.
+
+1) Design System por tokens (QSS)
+- Definir tokens (cores, superfícies, tipografia, raios, sombras, espaçamentos) e centralizar no get_qss
+- Remover “cores soltas” dos componentes; tudo deve referenciar tokens
+- Garantir consistência claro/escuro (sem “meio-tema”)
+
+2) Toggle de tema (canto superior direito)
+- Transformar o círculo atual em botão icônico (sol/lua), circular, com hover/focus
+- Persistir tema em QSettings; aplicar imediatamente em toda a janela
+- Fallback se ícones não existirem (emoji ou QStyleStandardPixmap)
+
+3) Selects e SpinBoxes (artefatos à direita)
+- Corrigir setas do QComboBox/QSpinBox usando QSS suportado (sem f-strings que quebrem chaves)
+- Aumentar padding-right e largura da área do drop-down; garantir contraste do fundo no escuro
+- Evitar regras que causam “Could not parse stylesheet…”; revisar selectors (::down-arrow/::up-arrow)
+- Testar em modo alto contraste do Windows
+
+4) Botões e CTA “Gerar PDF”
+- Padronizar .btn (altura ~40px, padding 0 16px, raio uniforme, estados hover/focus/disabled)
+- CTA primário em cor da paleta (primary) com contraste adequado; largura moderada (max 360px), centralizado
+- Sticky footer opcional com CTA e borda superior sutil
+
+5) Inputs/checkbox/labels
+- Bordas e raios uniformes; placeholder legível nos dois temas
+- Focus visível (borda + glow leve) e estados disabled
+- Checkbox consistente (marcação visível) e alinhamento com labels
+
+6) Layout & hierarquia
+- Container com max-width ~1100px, centralizado; grid 2 colunas ≥1200px, 1 coluna abaixo
+- Títulos/seções com borda inferior sutil; labels à esquerda (12–14px), campos ocupando o restante
+- Espaçamento vertical: ~12px por linha, 16px entre seções
+
+7) Acessibilidade
+- Garantir contraste ≥ 4.5:1
+- :focus-visible em todos os controles navegáveis
+- Vincular labels (for/id equivalentes) e mensagens de status (aria-live) quando aplicável
+
+8) Correções técnicas de QSS (bloqueadores atuais)
+- Remover/ajustar regras que geram “Could not parse stylesheet of object MainWindow”
+- Evitar inserir chaves literais em f-strings; quando necessário, escapar {{ }} corretamente
+- Substituir ícones via QIcon/QStyle ao invés de hardcode em QSS quando quebrar
+
+9) Coerência App → PDF
+- Reutilizar a paleta e tipografia no assets/styles.css do PDF (tokens espelhados)
+- Tabela de voos enxuta (já aplicada) e TOTAL como destaque
+
+10) QA – Definition of Done
+- Alternar tema antes/depois de abrir selects/checkbox (sem “caixinhas” à direita)
+- CTA visível, tamanho moderado, hover/focus/disabled corretos
+- Campos com placeholder, foco azul e bordas consistentes em claro/escuro
+- Persistência do tema após reiniciar o app
+- PDF mantém a mesma paleta e tipografia
+
+11) Itens nice-to-have
+- Toasts não-modais para sucesso/erro
+- Atalhos: Ctrl+G (já feito), adicionar Ctrl+S para salvar último caminho
+- Persistir último diretório de exportação do PDF
+
+12) Riscos/atenções
+- QSS é subset de CSS: evitar propriedades não suportadas; validar com checagem visual
+- Empacotamento de ícones (resources) para não quebrar em distribuição
+
+Anotações do print (origem dos problemas)
+- Toggle de tema sem ícone/feedback (substituir pelo botão icônico)
+- Artefatos “caixinhas” nos selects (corrigir drop-down e setas)
+- CTA exagerado (reduzir e padronizar)
+
+Responsável: V2
+Status: pendente de planejamento fino e execução
+
+v0.5 — Múltiplas Cotações (Qtd Cotação)
+Atualizado em: 2025-08-20 23:27:05 -03:00
+
+Escopo
+- Adicionar campo "Qtd Cotação" (1..9, default 1) persistente na sessão.
+- Botão "Adicionar Cotação" (visível quando Qtd>1) com snapshot dos dados atuais; limpa apenas o PNR.
+- Lista compacta de cotações (COT-01..), com editar/remover e progresso X/N.
+- "Gerar PDF": valida que total de cotações == Qtd. Se faltar, aviso.
+- Se houver PNR no formulário no momento do gerar, perguntar se deve virar a última cotação.
+- Geração de 1 PDF com N páginas de cotação + 1 página de Resumo Financeiro (tabela + soma geral).
+- Logs JSON por sessão em logs/cotacoes/YYYY/MM/DD/{timestamp}_qtdN.json.
+
+Modelo de dados
+- SessaoCotacao: qtdSolicitada, cotacoes[], tema, arquivoSaida.
+- Cotacao: id amigável (COT-01), key técnica (YYMMDDHHmmss-XX), pnrRaw, trechos, parametros (classe, bagagem, pagamento, parcelasMax, multaBaseUSD, reembolsavel, feeUSD, incentivoUSD, incentivoPct, ravPct), totais (tarifaUSD, taxasUSD, totalPorBilheteUSD), meta (titulo, rota, saida).
+
+PDF
+- Páginas por cotação com layout premium atual.
+- Resumo Financeiro: ID, Rota/Saída, Classe, Total por bilhete (USD) e Soma geral destacada.
+- Bookmarks: COT-01..COT-N e Resumo Financeiro.
+
+Validações
+- Qtd ≥ 1; PNR não vazio ao adicionar; totais válidos com 2 casas.
+- Remoção renumera IDs (COT-01..).
+
+Critérios de Aceite (DoD)
+- Qtd=1 mantém fluxo atual.
+- Qtd=3 → 4 páginas: COT-01, COT-02, COT-03, Resumo Financeiro.
+- Resumo soma os totalPorBilheteUSD congelados (sem recálculo).
+- UI preserva campos (exceto PNR) ao adicionar.
+- Log JSON gerado com a sessão.
+- Visual premium consistente com a cotação.
+
+Dependências
+- Ajustes no ui/app.py (UI, estado, lista de cotações, atalhos).
+- Extensão do gerador de PDF para múltiplas páginas e página de resumo.
+- Funções auxiliares (snapshotParametros, rota, dataSaida, tituloAuto).
+
+Riscos
+- Manter consistência de tema nos componentes adicionados.
+- Gerenciamento de memória ao montar N páginas (usar streaming do Playwright se necessário).

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste 7Mares</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .status {
+            background: #22c55e;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 7Mares Cotador - Teste de Conectividade</h1>
+        
+        <div class="status">
+            ✅ Arquivo HTML estático funcionando!
+        </div>
+        
+        <div class="test-section">
+            <h3>Teste de Servidores</h3>
+            <button onclick="testServer(3000)">Testar Porta 3000</button>
+            <button onclick="testServer(5173)">Testar Porta 5173</button>
+            <button onclick="testServer(8080)">Testar Porta 8080</button>
+            <div id="result"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>Teste de Decoder v2</h3>
+            <p>Cole um PNR aqui para testar:</p>
+            <textarea id="pnrInput" placeholder="PNR: ABC123&#10;1. LA 8084 Y 15JAN GRU-MAD HK1 16JAN 1P" style="width: 100%; height: 100px; background: #333; color: white; border: 1px solid #555; border-radius: 5px; padding: 10px;"></textarea>
+            <br><br>
+            <button onclick="testDecoder()">Testar Decodificação</button>
+            <div id="decoderResult"></div>
+        </div>
+    </div>
+
+    <script>
+        function testServer(port) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div style="background: #f59e0b; padding: 10px; border-radius: 5px;">🔄 Testando porta ${port}...</div>`;
+            
+            fetch(`http://localhost:${port}`)
+                .then(response => {
+                    if (response.ok) {
+                        result.innerHTML = `<div style="background: #22c55e; padding: 10px; border-radius: 5px;">✅ Porta ${port} está funcionando!</div>`;
+                    } else {
+                        result.innerHTML = `<div style="background: #ef4444; padding: 10px; border-radius: 5px;">❌ Porta ${port} retornou erro: ${response.status}</div>`;
+                    }
+                })
+                .catch(error => {
+                    result.innerHTML = `<div style="background: #ef4444; padding: 10px; border-radius: 5px;">❌ Porta ${port} não está respondendo: ${error.message}</div>`;
+                });
+        }
+        
+        function testDecoder() {
+            const pnrInput = document.getElementById('pnrInput').value;
+            const result = document.getElementById('decoderResult');
+            
+            if (!pnrInput.trim()) {
+                result.innerHTML = '<div style="background: #f59e0b; padding: 10px; border-radius: 5px;">⚠️ Digite um PNR para testar</div>';
+                return;
+            }
+            
+            result.innerHTML = '<div style="background: #f59e0b; padding: 10px; border-radius: 5px;">🔄 Testando decodificação...</div>';
+            
+            // Simular decodificação
+            setTimeout(() => {
+                result.innerHTML = `
+                    <div style="background: #22c55e; padding: 10px; border-radius: 5px;">
+                        ✅ Decodificação simulada funcionando!<br>
+                        <strong>PNR:</strong> ${pnrInput.split('\n')[0]}<br>
+                        <strong>Segmentos encontrados:</strong> ${pnrInput.split('\n').length - 1}
+                    </div>
+                `;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

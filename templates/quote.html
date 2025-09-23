@@ -4,33 +4,105 @@
 	<meta charset="utf-8">
 	<title>Cotação de Aéreos — 7Mares</title>
 	<link rel="stylesheet" href="../assets/styles.css">
+	<style>
+		/* Marca d'água leve com a logo */
+		body::before { content: ""; position: fixed; inset: 0; background: url('{{ logo_src|default("") }}') center center / 60% no-repeat; opacity: 0.06; pointer-events: none; }
+	</style>
 </head>
 <body>
 	<header class="header">
-		<img src="../assets/logo.png" alt="Sete Mares" class="logo">
-		<h1>COTAÇÃO DE AÉREOS</h1>
+		<div class="title">
+			<h1>COTAÇÃO {{ destino or 'DESTINO' }}</h1>
+			{% if cia %}
+				<h2 class="subtitle">Melhor valor com a {{ cia }}</h2>
+			{% endif %}
+			{% if saida_label_full %}
+				<div class="subtitle">Saída: {{ saida_label_full }}</div>
+			{% elif saida_label %}
+				<div class="subtitle">Saída: {{ saida_label }}</div>
+			{% endif %}
+			{% if family_name %}
+				<div class="subtitle">Família {{ family_name }}</div>
+			{% endif %}
+		</div>
+		{% if logo_src %}
+			<img src="{{ logo_src }}" alt="Logo" class="logo"/>
+		{% endif %}
 	</header>
 
+	<section></section>
+
+	{% if decoded and decoded.flightInfo and decoded.flightInfo.flights %}
+	{# badge removido para versão final premium #}
 	<section>
-		<h2>Com a {{ cia or 'Cia Aérea' }}:</h2>
-		<pre class="trechos">{{ "\n".join(trechos or []) }}</pre>
+		<table class="voos">
+			<thead>
+				<tr>
+					<th>Voo</th>
+					<th>Aeroporto de partida</th>
+					<th>Aeroporto de chegada</th>
+					<th>Horário de partida</th>
+					<th>Horário de chegada</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for f in decoded.flightInfo.flights %}
+				<tr>
+					<td class="nowrap">{{ f.company.iataCode }}-{{ f.flight }}</td>
+					<td class="airport">{{ f.departureAirport.description | default(f.departureAirport.iataCode) | airport_name }}</td>
+					<td class="airport">{{ f.landingAirport.description | default(f.landingAirport.iataCode) | airport_name }}</td>
+					<td class="nowrap tcenter">{{ f.departureTime }}</td>
+					<td class="nowrap tcenter">{{ f.landingTime }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
 	</section>
+	{% elif trechos and trechos|length > 0 %}
+	<section>
+		<table class="voos">
+			<thead>
+				<tr>
+					<th>Trechos</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for line in trechos %}
+				<tr>
+					<td class="airport">{{ line }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</section>
+	{% endif %}
 
 	<section class="valores">
-		<p><strong>Valor por bilhete:</strong> USD {{ tarifa }} + USD {{ taxas_exibidas }} taxas. <strong>TOTAL USD {{ total }}</strong></p>
-		<ul>
-			<li>Tarifa base: USD {{ tarifa }}</li>
-			<li>RAV: USD {{ rav }}</li>
-			<li>Fee: USD {{ fee }}</li>
-			<li>Incentivo: USD {{ incentivo }}</li>
-			<li>Taxas exibidas: USD {{ taxas_exibidas }}</li>
-		</ul>
+		{% if fare_details and fare_details|length > 1 %}
+			{% for item in fare_details %}
+			<p class="valor-linha-small">
+				<strong>Valor por bilhete — {{ item.label }}:</strong>
+				<span class="total-small">{{ currency or 'USD' }} {{ item.total }}</span>
+			</p>
+			{% endfor %}
+			<hr class="divisor">
+			<p class="valor-linha">
+				<strong>Valor total:</strong>
+				<span class="total">TOTAL {{ currency or 'USD' }} {{ grand_total }}</span>
+			</p>
+		{% else %}
+			<p class="valor-linha">
+				<strong>Valor por bilhete{% if classe %} — Classe {{ classe }}{% endif %}:</strong>
+				<span class="total">TOTAL {{ currency or 'USD' }} {{ total }}</span>
+			</p>
+		{% endif %}
 	</section>
 
 	<section>
 		<p><strong>Franquia de bagagem:</strong> {{ bagagem or 'A confirmar conforme cia e tarifa.' }}</p>
 		<p><strong>Forma de pagamento:</strong> {{ pagamento or 'A combinar.' }}</p>
-		<p><strong>Condições:</strong> {{ condicoes or 'Conforme regras tarifárias e políticas de reembolso/alteração.' }}</p>
+		<p><strong>Multa para alteração:</strong> {{ multa_text or ('USD ' ~ multa_base ~ ' + diferença tarifária, caso houver.') }}</p>
+		<p><strong>{{ reembolso_text or '' }}</strong></p>
 	</section>
 
 	<footer class="rodape">

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8">
+	<title>Cotações — 7Mares</title>
+	<link rel="stylesheet" href="../assets/styles.css">
+	<style>
+		.page{page-break-after: always}
+		.summary-table{width:100%;border-collapse:collapse;margin-top:8px}
+		.summary-table th,.summary-table td{border:1px solid #e5e7eb;padding:6px 8px;font-size:11px;vertical-align:middle}
+		.summary-table thead th{background:#0f172a;color:#ffffff;font-weight:700}
+	</style>
+</head>
+<body>
+	{% for q in quotes %}
+	<section class="page">
+		<header class="header">
+			<div class="title">
+				<h1>COTAÇÃO {{ q.rota_label or q.destino or 'DESTINO' }}</h1>
+				<h2 class="subtitle">Melhor valor com a {{ q.cia }}</h2>
+				{% if q.saida_label_full %}<div class="subtitle">Saída: {{ q.saida_label_full }}</div>{% elif q.saida_label %}<div class="subtitle">Saída: {{ q.saida_label }}</div>{% endif %}
+				{% if q.family_name %}<div class="subtitle">Família {{ q.family_name }}</div>{% endif %}
+			</div>
+			{% if q.logo_src %}<img src="{{ q.logo_src }}" alt="Logo" class="logo"/>{% endif %}
+		</header>
+		{% if q.decoded and q.decoded.flightInfo and q.decoded.flightInfo.flights %}
+		<table class="voos">
+			<thead>
+				<tr>
+					<th>Voo</th>
+					<th>Aeroporto de partida</th>
+					<th>Aeroporto de chegada</th>
+					<th>Horário de partida</th>
+					<th>Horário de chegada</th>
+				</tr>
+			</thead>
+			<tbody>
+			{% for f in q.decoded.flightInfo.flights %}
+			<tr>
+				<td class="nowrap">{{ f.company.iataCode }}-{{ f.flight }}</td>
+				<td class="airport">{{ f.departureAirport.description | default(f.departureAirport.iataCode) | airport_name }}</td>
+				<td class="airport">{{ f.landingAirport.description | default(f.landingAirport.iataCode) | airport_name }}</td>
+				<td class="nowrap tcenter">{{ f.departureTime }}</td>
+				<td class="nowrap tcenter">{{ f.landingTime }}</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+		{% endif %}
+		<section class="valores">
+			{% if q.fare_details and q.fare_details|length > 1 %}
+				{% for item in q.fare_details %}
+				<p class="valor-linha-small">
+					<strong>Valor por bilhete — {{ item.label }}:</strong>
+					<span class="total-small">{{ q.currency or 'USD' }} {{ item.total }}</span>
+				</p>
+				{% endfor %}
+				<hr class="divisor">
+				<p class="valor-linha">
+					<strong>Valor total:</strong>
+					<span class="total">TOTAL {{ q.currency or 'USD' }} {{ q.grand_total }}</span>
+				</p>
+			{% else %}
+				<p class="valor-linha">
+					<strong>Valor por bilhete{% if q.classe %} — Classe {{ q.classe }}{% endif %}:</strong>
+					<span class="total">TOTAL {{ q.currency or 'USD' }} {{ q.total }}</span>
+				</p>
+			{% endif %}
+		</section>
+		<section>
+			<p><strong>Franquia de bagagem:</strong> {{ q.bagagem or 'A confirmar conforme cia e tarifa.' }}</p>
+			<p><strong>Forma de pagamento:</strong> {{ q.pagamento or 'A combinar.' }}</p>
+			<p><strong>Multa para alteração:</strong> {{ q.multa_text or ('USD ' ~ q.multa_base ~ ' + diferença tarifária, caso houver.') }}</p>
+			<p><strong>{{ q.reembolso_text or '' }}</strong></p>
+		</section>
+	</section>
+	{% endfor %}
+
+	<section>
+		<h2 class="subtitle">Resumo Financeiro das Cotações</h2>
+		<table class="summary-table">
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Rota / Saída</th>
+					<th>Classe</th>
+					<th>Total por bilhete ({{ summary.currency or 'USD' }})</th>
+				</tr>
+			</thead>
+			<tbody>
+			{% for r in summary.rows %}
+			<tr>
+				<td>{{ r.id }}</td>
+				<td>{{ r.rota }} — {{ r.saida }}</td>
+				<td>{{ r.classe }}</td>
+				<td class="tcenter">{{ r.total }}</td>
+			</tr>
+			{% endfor %}
+			</tbody>
+		</table>
+		<p class="valores"><span class="total">SOMA GERAL {{ summary.currency or 'USD' }} {{ summary.soma }}</span></p>
+		<footer class="rodape">
+			<small>
+				Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
+			</small>
+		</footer>
+	</section>
+</body>
+</html>

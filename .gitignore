@@ -10,3 +10,27 @@ htmlcov/
 /build/
 /dist/
 assets/logo.png
+logs/
+
+# Local browser caches
+.pw-browsers/
+.playwright-mcp/
+.vite/
+
+# Desktop app artifacts
+desktop/dist/
+desktop/node_modules/
+desktop/.vite/
+
+# Large bundles/portable
+portable/
+dist2/
+7mares-cotador_portable.zip
+
+# Generated docs and PDFs
+*.pdf
+
+# Temp data/templates
+data/_tmp_quote.docx
+templates/_tmp_quote.docx
+pnrsh_out_01.json
