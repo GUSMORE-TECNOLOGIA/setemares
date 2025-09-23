@@ -1,0 +1,13 @@
+{
+  "name": "setemares",
+  "version": "1.0.0",
+  "description": "7Mares Cotador - Sistema de cotação de passagens aéreas",
+  "scripts": {
+    "build": "cd desktop && npm install && npm run build",
+    "dev": "cd desktop && npm run dev",
+    "preview": "cd desktop && npm run preview"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

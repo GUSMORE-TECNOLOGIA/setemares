@@ -34,3 +34,6 @@ dist2/
 data/_tmp_quote.docx
 templates/_tmp_quote.docx
 pnrsh_out_01.json
+
+# Embedded repos
+external/pnrsh/
