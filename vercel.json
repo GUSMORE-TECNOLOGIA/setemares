@@ -1,8 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd desktop && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "desktop/dist",
   "framework": "vite",
+  "installCommand": "npm install",
   "routes": [
     {
       "src": "/(.*)",
