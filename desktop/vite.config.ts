@@ -7,8 +7,19 @@ export default defineConfig(({ mode }) => {
 	
 	return {
 		plugins: [react()],
+		base: './',
 		resolve: {
 			alias: { '@': path.resolve(__dirname, 'src') }
+		},
+		build: {
+			assetsDir: 'assets',
+			rollupOptions: {
+				output: {
+					assetFileNames: 'assets/[name]-[hash][extname]',
+					chunkFileNames: 'assets/[name]-[hash].js',
+					entryFileNames: 'assets/[name]-[hash].js'
+				}
+			}
 		},
 		define: {
 			'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
