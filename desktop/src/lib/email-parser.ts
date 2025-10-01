@@ -258,6 +258,22 @@ function parseFareLines(text: string): ParsedFare[] {
         baseTaxes,
         notes: undefined // Não usar notes separadas, o fareClass já contém tudo
       });
+      continue;
+    }
+
+    // Fallback: aceitar linha de tarifa sem classe (sem "* ...")
+    const noLabelMatch =
+      trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*$/i) ||
+      trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*txs\s+usd\s*([\d.,]+)\s*$/i);
+    if (noLabelMatch) {
+      const [, baseFareStr, baseTaxesStr] = noLabelMatch;
+      fares.push({
+        fareClass: 'Tarifa',
+        paxType: 'ADT',
+        baseFare: sanitizeNumber(baseFareStr),
+        baseTaxes: sanitizeNumber(baseTaxesStr),
+        notes: undefined
+      });
     }
   }
   
