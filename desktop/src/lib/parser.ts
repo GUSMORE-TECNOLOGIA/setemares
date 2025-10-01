@@ -122,15 +122,20 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const lines = filteredText.split('\n').filter(line => line.trim());
   const trechos = lines.filter(line => /^[A-Z]{2}\s+\d+/.test(line.trim()));
   
-  // Detectar múltiplas tarifas - formato: tarifa usd X + txs usd Y *Categoria[/Tipo]
-  const fareLines = pnrText.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*\s*([^/\n]+)(?:\/(\w+))?/gi) || [];
+  // Detectar múltiplas tarifas em dois formatos
+  // 1) "tarifa usd X + txs usd Y *Categoria[/Tipo]"
+  // 2) "USD X + txs USD Y * categoria[/tipo]"
+  const fareLinesTarifa = pnrText.match(/^[ \t]*tarifa\s+usd\s+[\d.,]+\s*\+\s*txs\s+usd\s+[\d.,]+\s*\*[^\n]+/gim) || [];
+  const fareLinesUSD = pnrText.match(/^[ \t]*usd\s*[\d.,]+\s*\+\s*txs\s+usd\s*[\d.,]+\s*\*\s*[^\n]+/gim) || [];
+  const fareLines = [...fareLinesTarifa, ...fareLinesUSD];
   
   let fares: Array<{category: string; tarifa: string; taxas: string; paxType?: string}> = [];
   
   if (fareLines.length > 0) {
     // Múltiplas tarifas detectadas
     fares = fareLines.map(fareLine => {
-      const match = fareLine.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*\s*([^/\n]+)(?:\/(\w+))?/i);
+      const match = fareLine.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*\s*([^\/\n]+)(?:\/(\w+))?/i)
+        || fareLine.match(/usd\s*([\d.,]+)\s*\+\s*txs\s+usd\s*([\d.,]+)\s*\*\s*([^\/\n]+)(?:\/(\w+))?/i);
       if (match) {
         const tarifaValue = match[1]?.replace(',', '.') || '0';
         const taxasValue = match[2]?.replace(',', '.') || '0';
@@ -216,9 +221,12 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const isMulti = pnrText.includes('==');
   
   // Extrair dados adicionais
-  const paymentTerms = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim() || 
-    (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.');
-  const baggage = pnrText.match(/(\d+pc\s+\d+kg)/i)?.[1]?.trim() || 'Conforme regra da tarifa';
+  const pagtoLine = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim();
+  const netNet = pnrText.match(/\bnet\s*[- ]?\s*net\b/i)?.[0]?.replace(/\s*-\s*/g, ' - ').trim();
+  const parcelaMatch = pnrText.match(/\bparcela\s+\d+x\b/i)?.[0]?.trim() || pnrText.match(/\bparcelado\s+em\s+\d+x\b/i)?.[0]?.trim();
+  const combinedPayment = [netNet, parcelaMatch].filter(Boolean).join(' - ');
+  const paymentTerms = pagtoLine || (combinedPayment || (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.'));
+  const baggage = pnrText.match(/(\d+pc\s+\d+kg\s*(?:\/\s*[a-z]{3})?)/i)?.[1]?.trim() || 'Conforme regra da tarifa';
   const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
   
   // Detectar percentual de RAV - formato: "du 7%"
