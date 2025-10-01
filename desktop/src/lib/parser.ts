@@ -60,6 +60,16 @@ function filterReservationBlocks(pnrText: string): string {
   const blocks = pnrText.split(/(?:\n\s*)?={2,}(?:\s*\n)?/);
   console.log(`📦 Encontrados ${blocks.length} blocos de reserva`);
   
+  const isSegmentLine = (line: string): boolean => {
+    const trimmed = line.trim();
+    if (!trimmed) return false;
+    // Formato completo com status HS1: AA 950 12FEB GRUJFK HS1 2235 #0615
+    const full = /^([A-Z0-9]{2,3})\s+\d{2,5}\s+\d{1,2}[A-Z]{3}\s+[A-Z]{3}[A-Z]{3}\s+[A-Z]{2}\d\s+\d{3,4}\s+\#?\d{3,4}(?:\s+\d{1,2}[A-Z]{3})?$/;
+    // Formato flexível sem status: AA 950 12FEB GRUJFK 2235 #0615
+    const flexible = /^([A-Z0-9]{2,3})\s+\d{2,5}\s+\d{1,2}[A-Z]{3}\s+[A-Z]{3}[A-Z]{3}\s+\d{3,4}\s+\#?\d{3,4}$/;
+    return full.test(trimmed) || flexible.test(trimmed);
+  };
+
   const filteredBlocks = blocks.map((block, index) => {
     if (!block.trim()) return '';
     
@@ -71,6 +81,14 @@ function filterReservationBlocks(pnrText: string): string {
       return block;
     }
     
+    // Se as primeiras linhas já são segmentos de voo, NÃO remover
+    const first = lines[0] || '';
+    const second = lines[1] || '';
+    if (isSegmentLine(first) || isSegmentLine(second)) {
+      console.log(`ℹ️ Bloco ${index + 1}: primeiras linhas parecem segmentos, mantendo original`);
+      return block;
+    }
+
     // Ignorar as duas primeiras linhas e manter o resto
     const filteredLines = lines.slice(2);
     console.log(`✅ Bloco ${index + 1}: Removidas 2 primeiras linhas, mantidas ${filteredLines.length} linhas`);
