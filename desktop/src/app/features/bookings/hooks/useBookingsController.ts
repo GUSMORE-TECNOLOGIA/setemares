@@ -625,7 +625,35 @@ export function useBookingsController(): BookingControllerReturn {
       throw new Error('Nenhuma opcao valida encontrada para gerar PDF');
     }
 
-    const multiStackedData: MultiStackedPdfData = buildMultiStackedData(validOptions);
+    // Ajustar preços para PDF com o mesmo RAV do Pricing Engine quando disponível
+    const ravPercentFromEngine = pricingResult
+      ? (() => {
+          const tarifaFromResult = Math.max(pricingResult.total - pricingResult.taxasExibidas, 0.0001);
+          return (pricingResult.rav / tarifaFromResult) * 100;
+        })()
+      : 10;
+
+    const pricedOptions = validOptions.map((opt) => {
+      const categories = ((opt.fareCategories || opt.fares || []) as ParsedFare[]);
+      const adjusted = categories.map((fare) => {
+        const tarifa = Number(fare.baseFare ?? 0);
+        const taxasBase = Number(fare.baseTaxes ?? 0);
+        const totals = computeTotals({ tarifa, taxasBase, ravPercent: ravPercentFromEngine, fee: 0, incentivo: 0 });
+        return {
+          ...fare,
+          baseFare: tarifa,
+          baseTaxes: totals.taxasExibidas,
+          includeInPdf: (fare as any).includeInPdf ?? true
+        } as ParsedFare;
+      });
+      return {
+        ...opt,
+        fareCategories: adjusted,
+        fares: adjusted
+      } as typeof opt;
+    });
+
+    const multiStackedData: MultiStackedPdfData = buildMultiStackedData(pricedOptions);
     
     // Adicionar metadados da cotação
     if (quoteFamily || quoteObservation) {
