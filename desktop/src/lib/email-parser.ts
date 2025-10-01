@@ -233,8 +233,12 @@ function parseFareLines(text: string): ParsedFare[] {
   for (const line of lines) {
     const trimmed = line.trim();
     
-    // Regex para tarifas: tarifa usd 2999.00 + txs usd 90.00 *Exe/Internos em eco
-    const fareMatch = trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s+\+\s+txs\s+usd\s+([\d.,]+)\s+\*(.+)$/i);
+    // Regex para tarifas aceitando 2 formatos:
+    // 1) "tarifa usd 2999,00 + txs usd 90,00 *Exe/Internos em eco"
+    // 2) "USD2999,00 + txs USD90,00 * exe"
+    const fareMatch =
+      trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*(.+)$/i) ||
+      trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*txs\s+usd\s*([\d.,]+)\s*\*\s*(.+)$/i);
     
     if (fareMatch) {
       const [, baseFareStr, baseTaxesStr, label] = fareMatch;
@@ -268,7 +272,12 @@ function findPayment(text: string): string | null {
   
   for (const line of lines) {
     const trimmed = line.trim();
+    // Detectar linhas de pagamento mesmo sem o prefixo 'pagto'
     if (trimmed.toLowerCase().startsWith('pagto')) {
+      return trimmed;
+    }
+    // Padrões comuns: "net net", "parcela 6x", "parcelado em 6x"
+    if (/\bnet\s+net\b/i.test(trimmed) || /\bparcela\s+\d+x\b/i.test(trimmed) || /\bparcelado\s+em\s+\d+x\b/i.test(trimmed)) {
       return trimmed;
     }
   }
@@ -286,8 +295,9 @@ function parseBaggage(text: string): ParsedBaggage[] {
   for (const line of lines) {
     const trimmed = line.trim();
     
-    // Regex para bagagem: 2pc 23kg/pre, 1pc 23kg, 2pc 32kg/exe
-    const baggageMatch = trimmed.match(/^(\d)pc\s+(\d{2})kg(?:\/([a-z]{3}))?$/i);
+    // Regex para bagagem: aceitar com ou sem espaços ao redor da barra
+    // Exemplos válidos: "2pc 23kg/pre", "2pc 23kg / pre", "1pc 23kg"
+    const baggageMatch = trimmed.match(/^(\d)pc\s+(\d{2})kg(?:\s*\/\s*([a-z]{3}))?$/i);
     
     if (baggageMatch) {
       const [, piecesStr, kgStr, fareClass] = baggageMatch;

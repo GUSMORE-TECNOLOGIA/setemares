@@ -454,7 +454,8 @@ function getCompanyName(code: string): string {
     'AZ': 'ITA Airways',
     'LX': 'Swiss International Air Lines',
     'JL': 'Japan Airlines',
-    'EK': 'Emirates'
+    'EK': 'Emirates',
+    'SA': 'South African Airways'
   };
   return companies[code] || code;
 }
