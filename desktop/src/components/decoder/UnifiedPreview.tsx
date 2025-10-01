@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '../ui/Button';
 import { Eye, RefreshCw } from 'lucide-react';
 
@@ -33,6 +32,18 @@ export function UnifiedPreview({
   const overrideCodes = overrides.length;
   const heuristicCodes = heuristics.length;
   
+  // Contar aeroportos únicos
+  const uniqueAirports = new Set<string>();
+  decodedFlights.forEach(flight => {
+    if (flight.departureAirport?.iataCode) {
+      uniqueAirports.add(flight.departureAirport.iataCode);
+    }
+    if (flight.landingAirport?.iataCode) {
+      uniqueAirports.add(flight.landingAirport.iataCode);
+    }
+  });
+  const totalAirports = uniqueAirports.size;
+  
   // Debug: Log dos dados para verificar (apenas quando há dados)
   if (pnrData.trim().length > 0 && (parsedOptions.length > 0 || decodedFlights.length > 0)) {
     console.log('🔍 UnifiedPreview Debug:', {
@@ -51,7 +62,7 @@ export function UnifiedPreview({
         <div>
           <h2 className="text-lg font-semibold text-slate-100">Preview da Cotação</h2>
           <p className="text-sm text-slate-400">
-            {totalCodes} códigos encontrados • {successCodes} decodificados • {errorCodes} erros
+            {totalAirports} aeroportos • {successCodes} voos decodificados • {errorCodes} erros
           </p>
         </div>
       </div>

@@ -37,3 +37,8 @@ pnrsh_out_01.json
 
 # Embedded repos
 external/pnrsh/
+.env
+.env.*
+!.env.example
+desktop/.env.local
+node_modules/

@@ -267,10 +267,10 @@ export class DecoderV2 {
       console.log(`📊 Resultado da busca em ${table}:`, data);
 
       if (data && data.length > 0) {
-        const type = table === 'airports' ? 'airport' : 
+        const type: 'airport' | 'airline' | 'city' = table === 'airports' ? 'airport' : 
                     table === 'airlines' ? 'airline' : 'city';
 
-        const result = {
+        const result: DecodeResult = {
           success: true,
           type: type,
           data: data[0],
@@ -400,7 +400,7 @@ export class DecoderV2 {
       console.error('❌ Erro ao gerar sugestões:', error);
     }
 
-    return [...new Set(suggestions)].slice(0, 10);
+    return Array.from(new Set(suggestions)).slice(0, 10);
   }
 
   // Adicionar override

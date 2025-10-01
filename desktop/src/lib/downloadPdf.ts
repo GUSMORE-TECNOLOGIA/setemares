@@ -1,12 +1,49 @@
-import { pdf } from "@react-pdf/renderer";
-import PdfDocument, { type PdfData } from "./PdfDocument";
+import type { PdfData } from "./PdfDocument";
+import type { MultiStackedPdfData } from "./MultiStackedPdfDocument";
+import { downloadMultiPdf } from "./downloadMultiPdf";
+
+function mapSimpleToMulti(data: PdfData): MultiStackedPdfData {
+  const flights = data.flights.map((flight) => ({
+    flightCode: flight.flightCode,
+    fromAirport: flight.fromAirport,
+    toAirport: flight.toAirport,
+    departureDateTime: flight.departureDateTime,
+    arrivalDateTime: flight.arrivalDateTime
+  }));
+
+  const fareDetails = [
+    {
+      classLabel: data.fareBlock.classLabel || "Tarifa",
+      baseFare: Math.max(data.fareBlock.totalUSD, 0),
+      taxes: 0,
+      total: Math.max(data.fareBlock.totalUSD, 0)
+    }
+  ];
+
+  return {
+    header: {
+      title: data.header.title,
+      subtitle: data.header.subtitle,
+      departureLabel: data.header.departureLabel,
+      logoSrc: data.header.logoSrc
+    },
+    options: [
+      {
+        index: 1,
+        flights,
+        fareDetails,
+        footer: {
+          baggage: data.footer.baggage,
+          payment: data.footer.payment,
+          penalty: data.footer.penalty,
+          refundable: data.footer.refundable
+        }
+      }
+    ]
+  };
+}
 
 export async function downloadPdf(data: PdfData) {
-  const instance = pdf(PdfDocument({ data }));
-  const blob = await instance.toBlob();
-  const filename = `Cotacao_7Mares_${new Date().toISOString().slice(0,10)}.pdf`;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
+  const multiData = mapSimpleToMulti(data);
+  await downloadMultiPdf(multiData);
 }

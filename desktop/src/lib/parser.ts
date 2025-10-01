@@ -6,6 +6,7 @@ export interface ParsedPNR {
     category: string;
     tarifa: string;
     taxas: string;
+    paxType?: string;
   }>;
   fee: string;
   incentivo: string;
@@ -21,6 +22,8 @@ export interface ParsedPNR {
   paymentTerms?: string;
   baggage?: string;
   notes?: string;
+  ravPercent?: number; // Percentual de RAV detectado no PNR
+  incentivoPercent?: number; // Percentual de Incentivo detectado no PNR
 }
 
 export interface DecodedFlight {
@@ -30,8 +33,8 @@ export interface DecodedFlight {
   departureTime: string; // HH:MM
   landingDate: string; // DD/MM/AAAA
   landingTime: string; // HH:MM
-  departureAirport: { iataCode: string; description: string };
-  landingAirport: { iataCode: string; description: string };
+  departureAirport: { iataCode: string; description: string; found: boolean; error?: string };
+  landingAirport: { iataCode: string; description: string; found: boolean; error?: string };
   overnight: boolean;
   isOvernight: boolean; // Nova propriedade para indicar voo noturno
 }
@@ -44,6 +47,48 @@ export interface DecodedItinerary {
   };
 }
 
+/**
+ * Filtra automaticamente as duas primeiras linhas de cada bloco de reserva
+ * - Linha 1: Dados técnicos da emissão (localizador, código atendente, escritório, data)
+ * - Linha 2: Nome do passageiro (SOBRENOME/NOME)
+ * - Linha 3+: Dados relevantes (voos, tarifas, etc.)
+ */
+function filterReservationBlocks(pnrText: string): string {
+  console.log('🔍 Iniciando filtro de blocos de reserva...');
+  
+  // Dividir em blocos usando separadores "=="
+  const blocks = pnrText.split(/(?:\n\s*)?={2,}(?:\s*\n)?/);
+  console.log(`📦 Encontrados ${blocks.length} blocos de reserva`);
+  
+  const filteredBlocks = blocks.map((block, index) => {
+    if (!block.trim()) return '';
+    
+    const lines = block.split('\n').filter(line => line.trim());
+    console.log(`📦 Bloco ${index + 1}: ${lines.length} linhas`);
+    
+    if (lines.length <= 2) {
+      console.log(`⚠️ Bloco ${index + 1}: Muito pequeno (${lines.length} linhas), mantendo original`);
+      return block;
+    }
+    
+    // Ignorar as duas primeiras linhas e manter o resto
+    const filteredLines = lines.slice(2);
+    console.log(`✅ Bloco ${index + 1}: Removidas 2 primeiras linhas, mantidas ${filteredLines.length} linhas`);
+    console.log(`🔍 Linhas removidas:`, lines.slice(0, 2));
+    console.log(`🔍 Linhas mantidas:`, filteredLines.slice(0, 3));
+    
+    return filteredLines.join('\n');
+  });
+  
+  // Reconstruir o texto com separadores "==" entre blocos
+  const result = filteredBlocks
+    .filter(block => block.trim())
+    .join('\n==\n');
+  
+  console.log('✅ Filtro concluído:', result.substring(0, 200) + '...');
+  return result;
+}
+
 // Simulação do parser Python (será substituído por API real)
 export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   if (!pnrText.trim()) return null;
@@ -51,61 +96,133 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   // Simular delay de processamento
   await new Promise(resolve => setTimeout(resolve, 500));
   
+  // Filtrar automaticamente as duas primeiras linhas de cada bloco de reserva
+  const filteredText = filterReservationBlocks(pnrText);
+  console.log('🔍 PNR filtrado (ignorando 2 primeiras linhas de cada bloco):', filteredText);
+  
   // Parser básico para demonstração
-  const lines = pnrText.split('\n').filter(line => line.trim());
+  const lines = filteredText.split('\n').filter(line => line.trim());
   const trechos = lines.filter(line => /^[A-Z]{2}\s+\d+/.test(line.trim()));
   
-  // Detectar tarifas
-  const tarifaMatches = pnrText.match(/tarifa\s+usd\s+([\d.,]+)/gi) || [];
-  const taxasMatches = pnrText.match(/txs\s+usd\s+([\d.,]+)/gi) || [];
+  // Detectar múltiplas tarifas - formato: tarifa usd X + txs usd Y *Categoria[/Tipo]
+  const fareLines = pnrText.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*\s*([^/\n]+)(?:\/(\w+))?/gi) || [];
   
-  const fares = tarifaMatches.map((tarifa, i) => {
-    const tarifaValue = tarifa.match(/([\d.,]+)/)?.[1] || '0';
-    const taxasValue = taxasMatches[i]?.match(/([\d.,]+)/)?.[1] || '0';
+  let fares: Array<{category: string; tarifa: string; taxas: string; paxType?: string}> = [];
+  
+  if (fareLines.length > 0) {
+    // Múltiplas tarifas detectadas
+    fares = fareLines.map(fareLine => {
+      const match = fareLine.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*\s*([^/\n]+)(?:\/(\w+))?/i);
+      if (match) {
+        const tarifaValue = match[1]?.replace(',', '.') || '0';
+        const taxasValue = match[2]?.replace(',', '.') || '0';
+        const categoryRaw = match[3]?.trim() || '';
+        const paxTypeRaw = match[4]?.trim() || '';
+        
+        // Normalizar categoria
+        const category = categoryRaw.toLowerCase() === 'exe' ? 'Exe' : 
+                         categoryRaw.toLowerCase() === 'primeira' ? 'Primeira' :
+                         categoryRaw.toLowerCase() === 'eco' ? 'Eco' :
+                         categoryRaw.toLowerCase() === 'pre' ? 'Pre' : 
+                         categoryRaw.toUpperCase();
+        
+        // Normalizar tipo de passageiro
+        const paxType = paxTypeRaw.toLowerCase() === 'chd' ? 'CHD' :
+                        paxTypeRaw.toLowerCase() === 'inf' ? 'INF' :
+                        paxTypeRaw.toLowerCase() === 'adt' ? 'ADT' :
+                        paxTypeRaw.toUpperCase() || 'ADT';
+        
+        console.log(`🔍 Tarifa detectada: ${category}/${paxType} - USD ${tarifaValue} + USD ${taxasValue}`);
+        
+        return {
+          category,
+          tarifa: tarifaValue,
+          taxas: taxasValue,
+          paxType
+        };
+      }
+      return null;
+    }).filter(fare => fare !== null) as Array<{category: string; tarifa: string; taxas: string; paxType?: string}>;
+  } else {
+    // Fallback para formato antigo - uma única tarifa
+    const fareLineMatch = pnrText.match(/USD([\d.,]+)\s*\+\s*txs\s+USD([\d.,]+)\s*\*\s*(\w+)/i);
     
-    // Detectar categoria do sufixo
-    const lineIndex = pnrText.indexOf(tarifa);
-    const lineEnd = pnrText.indexOf('\n', lineIndex);
-    const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
-    
-    let category = 'ADT';
-    if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
-      category = 'CHD';
-    } else if (fullLine.toLowerCase().includes('exe')) {
-      category = 'Exe';
-    } else if (fullLine.toLowerCase().includes('eco')) {
-      category = 'Eco';
-    } else if (fullLine.toLowerCase().includes('pre')) {
-      category = 'Pre';
+    if (fareLineMatch) {
+      // Padrão completo encontrado - uma única tarifa
+      const tarifaValue = fareLineMatch[1]?.replace(',', '.') || '0';
+      const taxasValue = fareLineMatch[2]?.replace(',', '.') || '0';
+      const category = fareLineMatch[3]?.toLowerCase() === 'exe' ? 'Exe' : 
+                       fareLineMatch[3]?.toLowerCase() === 'eco' ? 'Eco' :
+                       fareLineMatch[3]?.toLowerCase() === 'pre' ? 'Pre' : 'ADT';
+      
+      fares = [{
+        category,
+        tarifa: tarifaValue,
+        taxas: taxasValue,
+      }];
+    } else {
+      // Último fallback - método antigo
+      const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
+      const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
+      
+      fares = tarifaMatches.map((tarifa, i) => {
+        const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+        const taxasValue = taxasMatches[i]?.match(/txs\s+USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+        
+        // Detectar categoria do sufixo
+        const lineIndex = pnrText.indexOf(tarifa);
+        const lineEnd = pnrText.indexOf('\n', lineIndex);
+        const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
+        
+        let category = 'ADT';
+        if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
+          category = 'CHD';
+        } else if (fullLine.toLowerCase().includes('exe')) {
+          category = 'Exe';
+        } else if (fullLine.toLowerCase().includes('eco')) {
+          category = 'Eco';
+        } else if (fullLine.toLowerCase().includes('pre')) {
+          category = 'Pre';
+        }
+        
+        return {
+          category,
+          tarifa: tarifaValue,
+          taxas: taxasValue,
+        };
+      });
     }
-    
-    return {
-      category,
-      tarifa: tarifaValue,
-      taxas: taxasValue,
-    };
-  });
+  }
   
   // Detectar múltiplas cotações
   const isMulti = pnrText.includes('==');
   
   // Extrair dados adicionais
-  const paymentTerms = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim() || 'Em até 4x no cartão de crédito. Taxas à vista.';
+  const paymentTerms = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim() || 
+    (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.');
   const baggage = pnrText.match(/(\d+pc\s+\d+kg)/i)?.[1]?.trim() || 'Conforme regra da tarifa';
-  const notes = pnrText.match(/Troca e reembolsa[^\n]+/i)?.[0]?.trim() || '';
+  const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
+  
+  // Detectar percentual de RAV - formato: "du 7%"
+  const ravMatch = pnrText.match(/du\s+(\d+)%/i);
+  const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
+  
+  // Detectar percentual de Incentivo - formato: "in 2%"
+  const incentivoMatch = pnrText.match(/in\s+(\d+)%/i);
+  const incentivoPercent = incentivoMatch ? parseInt(incentivoMatch[1]) : undefined;
   
   // Decodificar segmentos
   const segments = trechos.map(trecho => {
     const parts = trecho.trim().split(/\s+/);
-    const [cia, flight, dateStr, route, , depTime, arrTime] = parts;
+    const [cia, flight, dateStr, route] = parts;
     
     if (!cia || !flight || !dateStr || !route) return null;
     
     const orig = route?.substring(0, 3) || 'GRU';
     const dest = route?.substring(3, 6) || 'ICN';
-    const decodedDate = decodeDate(dateStr);
-    const depTimeFormatted = formatTime(depTime);
-    const arrTimeFormatted = formatTime(arrTime);
+    // const decodedDate = decodeDate(dateStr);
+    // const depTimeFormatted = formatTime(depTime);
+    // const arrTimeFormatted = formatTime(arrTime);
     
     return {
       carrier: cia,
@@ -132,6 +249,8 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     paymentTerms,
     baggage,
     notes,
+    ravPercent,
+    incentivoPercent,
   };
 }
 
@@ -141,21 +260,31 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
   
   await new Promise(resolve => setTimeout(resolve, 300));
   
-  const flights: (DecodedFlight | null)[] = trechos.map(trecho => {
+  const flightsResults = await Promise.all(trechos.map(async trecho => {
     // Exemplo: "LA 8084   22NOV GRULHR HS1  2340  #1405"
     // Exemplo: "DL  104   14OCT GRUATL HS1  2250  #0735"
-    const parts = trecho.trim().split(/\s+/);
+    // Exemplo: "1 AA 950 12FEB  GRUJFK SS2  2235  0615   13FEB" (novo formato)
+    
+    // Remover número de linha no início (ex: "1 AA" -> "AA")
+    let cleanedTrecho = trecho.replace(/^\d+\s+/, '');
+    
+    const parts = cleanedTrecho.trim().split(/\s+/);
     console.log('🔍 Trecho original:', trecho);
     console.log('🔍 Parts divididas:', parts);
     
     // Tentar diferentes formatos
-    let cia, flight, dateStr, route, depTime, arrTime;
+    let cia, flight, dateStr, route, depTime, arrTime, arrDate;
     
-    if (parts.length >= 6) {
-      // Formato: "DL  104   14OCT GRUATL HS1  2250  #0735"
+    // Formato novo: "AA 950 12FEB GRUJFK SS2 2235 0615 13FEB"
+    if (parts.length >= 8) {
+      [cia, flight, dateStr, route, , depTime, arrTime, arrDate] = parts;
+    } 
+    // Formato: "DL  104   14OCT GRUATL HS1  2250  #0735"
+    else if (parts.length >= 6) {
       [cia, flight, dateStr, route, , depTime, arrTime] = parts;
-    } else if (parts.length >= 5) {
-      // Formato: "LA 8084   22NOV GRULHR HS1  2340  #1405"
+    } 
+    // Formato: "LA 8084   22NOV GRULHR HS1  2340  #1405"
+    else if (parts.length >= 5) {
       [cia, flight, dateStr, route, depTime, arrTime] = parts;
     } else {
       console.warn('⚠️ Trecho inválido - formato não reconhecido:', trecho);
@@ -177,35 +306,59 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     // Decodificar horários
     const depTimeFormatted = formatTime(depTime);
     
-    // Para voos noturnos (#), adicionar 1 dia à data de chegada
-    let arrDate = decodedDate;
+    // Para voos noturnos (#) ou com data de chegada explícita, calcular a data correta
+    let finalArrDate = decodedDate;
     let isOvernight = false;
-    if (trecho.includes('#')) {
+    
+    // Se há data de chegada explícita (formato: "13FEB"), usar ela
+    if (arrDate && /^\d{1,2}[A-Z]{3}$/.test(arrDate)) {
+      finalArrDate = decodeDate(arrDate);
       isOvernight = true;
-      // Converter data brasileira para Date, adicionar 1 dia e converter de volta
+    } 
+    // Senão, se tem # (voo noturno), adicionar 1 dia
+    else if (trecho.includes('#')) {
+      isOvernight = true;
       const [day, month, year] = decodedDate.split('/');
       const nextDay = new Date(parseInt(year), parseInt(month) - 1, parseInt(day) + 1);
-      arrDate = `${nextDay.getDate().toString().padStart(2, '0')}/${(nextDay.getMonth() + 1).toString().padStart(2, '0')}/${nextDay.getFullYear()}`;
+      finalArrDate = `${nextDay.getDate().toString().padStart(2, '0')}/${(nextDay.getMonth() + 1).toString().padStart(2, '0')}/${nextDay.getFullYear()}`;
     }
     const arrTimeFormatted = formatTime(arrTime);
+    
+    // Decodificar aeroportos
+    const [depAirport, arrAirport] = await Promise.all([
+      getAirportName(orig),
+      getAirportName(dest)
+    ]);
     
     return {
       company: { iataCode: cia, description: getCompanyName(cia) },
       flight,
       departureDate: decodedDate,
       departureTime: depTimeFormatted,
-      landingDate: arrDate,
+      landingDate: finalArrDate,
       landingTime: arrTimeFormatted,
-      departureAirport: { iataCode: orig, description: getAirportName(orig) },
-      landingAirport: { iataCode: dest, description: getAirportName(dest) },
+      departureAirport: { 
+        iataCode: orig, 
+        description: depAirport.name,
+        found: depAirport.found,
+        error: depAirport.error
+      },
+      landingAirport: { 
+        iataCode: dest, 
+        description: arrAirport.name,
+        found: arrAirport.found,
+        error: arrAirport.error
+      },
       overnight: trecho.includes('#'),
       isOvernight: isOvernight, // Indica se é voo noturno (chegada no dia seguinte)
     };
-  }).filter((flight): flight is DecodedFlight => flight !== null);
+  }));
+  
+  const flights = flightsResults.filter((flight): flight is DecodedFlight => flight !== null);
   
   return {
     source: 'internal-parser',
-    overnights: flights.filter(f => f.overnight).length,
+    overnights: flights.filter(f => f?.overnight).length,
     flightInfo: { flights },
   };
 }
@@ -294,21 +447,37 @@ function getCompanyName(code: string): string {
     'TP': 'TAP Air Portugal',
     'AF': 'Air France',
     'KL': 'KLM',
-    'LH': 'Lufthansa'
+    'LH': 'Lufthansa',
+    'UA': 'United Airlines',
+    'AA': 'American Airlines',
+    'DL': 'Delta Air Lines',
+    'AZ': 'ITA Airways',
+    'LX': 'Swiss International Air Lines',
+    'JL': 'Japan Airlines',
+    'EK': 'Emirates'
   };
   return companies[code] || code;
 }
 
-function getAirportName(code: string): string {
-  const airports: Record<string, string> = {
-    GRU: 'Guarulhos International Airport (GRU), São Paulo, Brazil',
-    LHR: 'London Heathrow Airport (LHR), London, England, United Kingdom',
-    GVA: 'Cointrin International Airport (GVA), Geneva, Switzerland',
-    MAD: 'Madrid–Barajas Airport (MAD), Madrid, Spain',
-    ICN: 'Incheon International Airport (ICN), Seoul, South Korea',
-    PVG: 'Shanghai Pudong International Airport (PVG), Shanghai, China',
-    ATL: 'Hartsfield–Jackson Atlanta International Airport (ATL), Atlanta, USA',
-    BOS: 'Logan International Airport (BOS), Boston, USA',
-  };
-  return airports[code] || code;
+async function getAirportName(code: string): Promise<{ name: string; found: boolean; error?: string }> {
+  try {
+    // Usar o sistema robusto de decodificação
+    const { robustDecoder } = await import('./robust-decoder');
+    const result = await robustDecoder.decodeAirport(code);
+    
+    return {
+      name: result.description,
+      found: result.found,
+      error: result.error
+    };
+  } catch (error) {
+    console.error('❌ Erro crítico no sistema de decodificação:', error);
+    
+    // Fallback de emergência - usar código simples
+    return {
+      name: code,
+      found: false,
+      error: `Erro crítico no sistema de decodificação: ${error instanceof Error ? error.message : 'Erro desconhecido'}`
+    };
+  }
 }

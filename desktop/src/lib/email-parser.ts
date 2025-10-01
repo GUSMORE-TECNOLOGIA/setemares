@@ -2,13 +2,70 @@
 import { ParsedEmail, ParsedOption, ParsedSegment, ParsedFare, ParsedBaggage } from './types/email-parser';
 
 /**
+ * Filtra automaticamente as duas primeiras linhas de cada bloco de reserva
+ * - Linha 1: Dados técnicos da emissão (localizador, código atendente, escritório, data)
+ * - Linha 2: Nome do passageiro (SOBRENOME/NOME)
+ * - Linha 3+: Dados relevantes (voos, tarifas, etc.)
+ */
+function filterReservationBlocks(pnrText: string): string {
+  console.log('🔍 Iniciando filtro de blocos de reserva...');
+  
+  // Dividir em blocos usando separadores "=="
+  const blocks = pnrText.split(/(?:\n\s*)?={2,}(?:\s*\n)?/);
+  console.log(`📦 Encontrados ${blocks.length} blocos de reserva`);
+  
+  const filteredBlocks = blocks.map((block, index) => {
+    if (!block.trim()) return '';
+    
+    const lines = block.split('\n').filter(line => line.trim());
+    console.log(`📦 Bloco ${index + 1}: ${lines.length} linhas`);
+    
+    if (lines.length <= 2) {
+      console.log(`⚠️ Bloco ${index + 1}: Muito pequeno (${lines.length} linhas), mantendo original`);
+      return block;
+    }
+    
+    // Ignorar as duas primeiras linhas e manter o resto
+    const filteredLines = lines.slice(2);
+    console.log(`✅ Bloco ${index + 1}: Removidas 2 primeiras linhas, mantidas ${filteredLines.length} linhas`);
+    console.log(`🔍 Linhas removidas:`, lines.slice(0, 2));
+    console.log(`🔍 Linhas mantidas:`, filteredLines.slice(0, 3));
+    
+    return filteredLines.join('\n');
+  });
+  
+  // Reconstruir o texto com separadores "==" entre blocos
+  const result = filteredBlocks
+    .filter(block => block.trim())
+    .join('\n==\n');
+  
+  console.log('✅ Filtro concluído:', result.substring(0, 200) + '...');
+  return result;
+}
+
+/**
  * Parser principal: converte e-mail bruto em opções estruturadas
  */
+export function parseEmail(raw: string): ParsedEmail {
+  return parseEmailToOptions(raw);
+}
+
 export function parseEmailToOptions(raw: string): ParsedEmail {
   console.log('📧 Iniciando parse do e-mail...');
   console.log('📧 Conteúdo bruto:', raw);
   
-  const blocks = splitByOptions(raw);
+  // Só aplicar filtro se NÃO tiver separadores de opções (==, --, +)
+  // Se tiver separadores, já são opções limpas, não precisam de filtro
+  const hasSeparators = raw.includes('==') || /^--+$/m.test(raw) || /^\+$/m.test(raw);
+  const filteredText = hasSeparators ? raw : filterReservationBlocks(raw);
+  
+  if (hasSeparators) {
+    console.log('🔍 PNR com separadores detectado, pulando filtro de 2 linhas');
+  } else {
+    console.log('🔍 E-mail filtrado (ignorando 2 primeiras linhas de cada bloco):', filteredText);
+  }
+  
+  const blocks = splitByOptions(filteredText);
   console.log(`📦 Encontrados ${blocks.length} blocos de opções`);
   blocks.forEach((block, idx) => {
     console.log(`📦 Bloco ${idx + 1}:`, block.substring(0, 200) + '...');
@@ -50,20 +107,26 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
 function splitByOptions(text: string): string[] {
   console.log('🔍 splitByOptions: Iniciando divisão do texto...');
   
-  // Primeiro, tentar dividir por linhas que contenham apenas ==
+  // Tentar dividir por linhas que contenham apenas separadores: ==, --, ---, +
   const equalLines = text.split(/\n/).map(line => line.trim());
-  const equalIndexes = equalLines
-    .map((line, idx) => line.match(/^=+$/) ? idx : -1)
+  const separatorIndexes = equalLines
+    .map((line, idx) => {
+      // Detecta linhas com apenas: ==, --, ---, OU
+      if (line.match(/^=+$/) || line.match(/^-{2,}$/) || line.match(/^OU$/i) || line === '+') {
+        return idx;
+      }
+      return -1;
+    })
     .filter(idx => idx !== -1);
   
-  console.log('🔍 splitByOptions: Linhas com === encontradas:', equalIndexes);
+  console.log('🔍 splitByOptions: Linhas separadoras encontradas:', separatorIndexes);
   
-  if (equalIndexes.length > 0) {
+  if (separatorIndexes.length > 0) {
     const lines = text.split(/\n/);
     const blocks: string[] = [];
     
     let start = 0;
-    for (const idx of equalIndexes) {
+    for (const idx of separatorIndexes) {
       if (idx > start) {
         blocks.push(lines.slice(start, idx).join('\n'));
       }
@@ -75,7 +138,7 @@ function splitByOptions(text: string): string[] {
       blocks.push(lines.slice(start).join('\n'));
     }
     
-    console.log('🔍 splitByOptions: Blocos criados com ===:', blocks.length);
+    console.log('🔍 splitByOptions: Blocos criados:', blocks.length);
     return blocks.filter(block => block.trim().length > 0);
   }
   
@@ -100,89 +163,24 @@ function parseSegments(text: string): ParsedSegment[] {
   const lines = text.split(/\n/);
   
   for (const line of lines) {
-    const trimmed = line.trim();
+    let trimmed = line.trim();
     
-    // Regex para segmentos: AA 1234 14OCT GRUATL HS1 2250 #0735 (mais flexível com espaços)
-    const segmentMatch = trimmed.match(/^([A-Z0-9]{2})\s+(\d{2,4})\s+(\d{2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})?$/);
+    // Remover número de linha no início (ex: "1 AA" -> "AA", "2 JL" -> "JL")
+    trimmed = trimmed.replace(/^\d+\s+/, '');
     
-    // Se não encontrou com regex rígida, tentar versão mais flexível
-    if (!segmentMatch) {
-      // Versão mais flexível: aceita espaços extras e formatos variados
-      const flexibleMatch = trimmed.match(/^([A-Z0-9]{2})\s+(\d{2,4})\s+(\d{2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})?/);
-      if (flexibleMatch) {
-        const [, carrier, flight, date, depAirport, arrAirport, status, depTime, arrTime] = flexibleMatch;
-        
-        // Converter data e horários para ISO
-        const depTimeISO = convertToISO(date, depTime);
-        const arrTimeISO = convertToISO(date, arrTime, arrTime?.startsWith('#'));
-        
-        segments.push({
-          carrier,
-          flight,
-          depAirport,
-          arrAirport,
-          depTimeISO,
-          arrTimeISO,
-          status,
-          cabin: status?.substring(0, 2),
-          bookingClass: status?.substring(2)
-        });
-        continue;
-      }
-      
-      // Tentar versão ainda mais flexível para voos sem status (ex: DL 104 14OCT GRUATL 2250 #0735)
-      const veryFlexibleMatch = trimmed.match(/^([A-Z0-9]{2})\s+(\d{2,4})\s+(\d{2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+(\d{3,4})\s+(\#?\d{3,4})?/);
-      if (veryFlexibleMatch) {
-        const [, carrier, flight, date, depAirport, arrAirport, depTime, arrTime] = veryFlexibleMatch;
-        
-        // Converter data e horários para ISO
-        const depTimeISO = convertToISO(date, depTime);
-        const arrTimeISO = convertToISO(date, arrTime, arrTime?.startsWith('#'));
-        
-        segments.push({
-          carrier,
-          flight,
-          depAirport,
-          arrAirport,
-          depTimeISO,
-          arrTimeISO,
-          status: 'HS1', // Default status
-          cabin: 'HS',
-          bookingClass: '1'
-        });
-        continue;
-      }
-      
-      // Tentar versão para voos com espaços extras (ex: DL  104   14OCT GRUATL HS1  2250  #0735)
-      const extraSpacesMatch = trimmed.match(/^([A-Z0-9]{2})\s+(\d{2,4})\s+(\d{2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})?/);
-      if (extraSpacesMatch) {
-        const [, carrier, flight, date, depAirport, arrAirport, status, depTime, arrTime] = extraSpacesMatch;
-        
-        // Converter data e horários para ISO
-        const depTimeISO = convertToISO(date, depTime);
-        const arrTimeISO = convertToISO(date, arrTime, arrTime?.startsWith('#'));
-        
-        segments.push({
-          carrier,
-          flight,
-          depAirport,
-          arrAirport,
-          depTimeISO,
-          arrTimeISO,
-          status,
-          cabin: status?.substring(0, 2),
-          bookingClass: status?.substring(2)
-        });
-        continue;
-      }
-    }
+    // Regex mais robusta para novos formatos:
+    // Captura: AA 950 12FEB GRUJFK SS2 2235 0615 13FEB
+    // Captura: UA 844 07JAN GRUORD HS1 2145 #0530
+    // Captura: DL 104 14OCT GRUATL HS1 2250 #0735
+    const newFormatMatch = trimmed.match(/^([A-Z0-9]{2,3})\s+(\d{2,5})\s+(\d{1,2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})(\*?)\s*([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})(\s+(\d{1,2}[A-Z]{3}))?/);
     
-    if (segmentMatch) {
-      const [, carrier, flight, date, depAirport, arrAirport, status, depTime, arrTime] = segmentMatch;
+    if (newFormatMatch) {
+      const [, carrier, flight, depDate, depAirport, arrAirport, asterisk, status, depTime, arrTime, , arrDate] = newFormatMatch;
       
       // Converter data e horários para ISO
-      const depTimeISO = convertToISO(date, depTime);
-      const arrTimeISO = convertToISO(date, arrTime, arrTime?.startsWith('#'));
+      const depTimeISO = convertToISO(depDate, depTime);
+      // Se tem data de chegada explícita, usar ela; senão, usar data de partida
+      const arrTimeISO = arrDate ? convertToISO(arrDate, arrTime) : convertToISO(depDate, arrTime, arrTime?.startsWith('#'));
       
       segments.push({
         carrier,
@@ -195,6 +193,30 @@ function parseSegments(text: string): ParsedSegment[] {
         cabin: status?.substring(0, 2),
         bookingClass: status?.substring(2)
       });
+      continue;
+    }
+    
+    // Fallback: versão mais flexível sem status
+    const flexibleMatch = trimmed.match(/^([A-Z0-9]{2,3})\s+(\d{2,5})\s+(\d{1,2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})\s+(\d{3,4})\s+(\#?\d{3,4})?/);
+    if (flexibleMatch) {
+      const [, carrier, flight, date, depAirport, arrAirport, depTime, arrTime] = flexibleMatch;
+      
+      // Converter data e horários para ISO
+      const depTimeISO = convertToISO(date, depTime);
+      const arrTimeISO = convertToISO(date, arrTime, arrTime?.startsWith('#'));
+      
+      segments.push({
+        carrier,
+        flight,
+        depAirport,
+        arrAirport,
+        depTimeISO,
+        arrTimeISO,
+        status: 'HS1',
+        cabin: 'HS',
+        bookingClass: '1'
+      });
+      continue;
     }
   }
   
@@ -220,17 +242,17 @@ function parseFareLines(text: string): ParsedFare[] {
       const baseFare = sanitizeNumber(baseFareStr);
       const baseTaxes = sanitizeNumber(baseTaxesStr);
       
-      // Extrair fare class e pax type do label
-      const fareClass = normalizeFareClass(extractFareClass(label));
+      // Usar o label completo como fareClass para preservar descrições compostas
+      // Ex: "Vai Eco/Volta Pre", "Exe/Internos em eco", etc.
+      const fareClass = label.trim();
       const paxType = paxTypeFromLabel(label);
-      const notes = extractNotes(label);
       
       fares.push({
         fareClass,
         paxType,
         baseFare,
         baseTaxes,
-        notes: notes || undefined
+        notes: undefined // Não usar notes separadas, o fareClass já contém tudo
       });
     }
   }

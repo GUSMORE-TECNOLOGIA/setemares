@@ -56,12 +56,27 @@ export function useSupabaseData<T>(
         // Aplicar ordenação
         query = query.order(orderBy, { ascending: orderDirection === 'asc' });
 
-        // Aplicar paginação
-        const from = (currentPage - 1) * itemsPerPage;
-        const to = from + itemsPerPage - 1;
-        query = query.range(from, to);
-
-        const { data: result, error: queryError, count } = await query;
+        // Se há busca ativa, carregar TODOS os resultados (sem paginação)
+        // Se não há busca, aplicar paginação normal
+        let result, queryError, count;
+        
+        if (search && search.trim()) {
+          // Busca ativa: carregar todos os resultados
+          const { data: searchResult, error: searchError, count: searchCount } = await query;
+          result = searchResult;
+          queryError = searchError;
+          count = searchCount;
+        } else {
+          // Sem busca: aplicar paginação normal
+          const from = (currentPage - 1) * itemsPerPage;
+          const to = from + itemsPerPage - 1;
+          query = query.range(from, to);
+          
+          const { data: pageResult, error: pageError, count: pageCount } = await query;
+          result = pageResult;
+          queryError = pageError;
+          count = pageCount;
+        }
 
         if (queryError) {
           throw queryError;
@@ -120,18 +135,20 @@ export function useCities() {
 }
 
 // Hook específico para aeroportos
-export function useAirports() {
+export function useAirports(options?: { page?: number; limit?: number; search?: string; }) {
   return useSupabaseData<AirportRow>('airports', {
     searchFields: ['iata3', 'icao4', 'name', 'city_iata', 'country'],
-    orderBy: 'iata3'
+    orderBy: 'iata3',
+    ...options
   });
 }
 
 // Hook específico para companhias aéreas
-export function useAirlines() {
+export function useAirlines(options?: { page?: number; limit?: number; search?: string; }) {
   return useSupabaseData<AirlineRow>('airlines', {
     searchFields: ['iata2', 'icao3', 'name', 'country'],
-    orderBy: 'iata2'
+    orderBy: 'iata2',
+    ...options
   });
 }
 

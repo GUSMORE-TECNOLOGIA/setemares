@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronUp, ChevronDown, Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Search, Plus, Edit2, Trash2, X } from 'lucide-react';
 
 interface Column<T> {
   key: keyof T;
@@ -39,6 +39,7 @@ export function Table<T extends Record<string, any>>({
   const [sortField, setSortField] = React.useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [pendingSearch, setPendingSearch] = React.useState('');
 
   const handleSort = (field: keyof T) => {
     if (sortField === field) {
@@ -50,14 +51,45 @@ export function Table<T extends Record<string, any>>({
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    onSearch?.(query);
+    setPendingSearch(query);
   };
 
-  const sortedData = React.useMemo(() => {
-    if (!sortField) return data;
+  const executeSearch = () => {
+    setSearchQuery(pendingSearch);
+    onSearch?.(pendingSearch);
+  };
+
+  const clearSearch = () => {
+    setPendingSearch('');
+    setSearchQuery('');
+    onSearch?.('');
+  };
+
+  // Filtrar dados por busca (apenas se não há busca no backend)
+  const filteredData = React.useMemo(() => {
+    // Se há callback onSearch, significa que a busca é feita no backend
+    // Então não aplicar filtro local
+    if (onSearch) return data;
     
-    return [...data].sort((a, b) => {
+    // Se não há callback onSearch, aplicar busca local
+    if (!searchQuery.trim()) return data;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return data.filter(row => {
+      // Buscar em todos os campos string do objeto
+      return Object.values(row).some(value => {
+        if (typeof value === 'string') {
+          return value.toLowerCase().includes(query);
+        }
+        return false;
+      });
+    });
+  }, [data, searchQuery, onSearch]);
+
+  const sortedData = React.useMemo(() => {
+    if (!sortField) return filteredData;
+    
+    return [...filteredData].sort((a, b) => {
       const aVal = a[sortField];
       const bVal = b[sortField];
       
@@ -65,7 +97,7 @@ export function Table<T extends Record<string, any>>({
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortField, sortDirection]);
+  }, [filteredData, sortField, sortDirection]);
 
   if (loading) {
     return (
@@ -88,7 +120,17 @@ export function Table<T extends Record<string, any>>({
       <div className="p-6 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-slate-100">
-            {data.length} {data.length === 1 ? 'item' : 'itens'}
+            {sortedData.length} {sortedData.length === 1 ? 'item' : 'itens'}
+            {searchQuery.trim() && onSearch && (
+              <span className="text-slate-400 text-sm font-normal ml-2">
+                encontrado{searchQuery.trim() && ` para "${searchQuery}"`}
+              </span>
+            )}
+            {searchQuery.trim() && !onSearch && sortedData.length !== data.length && (
+              <span className="text-slate-400 text-sm font-normal ml-2">
+                (de {data.length} total)
+              </span>
+            )}
           </h3>
           {onAdd && (
             <button
@@ -102,15 +144,36 @@ export function Table<T extends Record<string, any>>({
         </div>
         
         {searchable && (
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={pendingSearch}
+                onChange={(e) => handleSearch(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && executeSearch()}
+                className="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-white/10 rounded-lg text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40"
+              />
+            </div>
+            <button
+              onClick={executeSearch}
+              className="px-4 py-2 bg-brand hover:bg-brand/80 text-white rounded-lg transition-colors duration-150 flex items-center gap-2"
+              title="Buscar"
+            >
+              <Search size={16} />
+              Buscar
+            </button>
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-lg transition-colors duration-150 flex items-center gap-2"
+                title="Limpar busca"
+              >
+                <X size={16} />
+                Limpar
+              </button>
+            )}
           </div>
         )}
       </div>

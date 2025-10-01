@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { ChevronLeft, ChevronRight, Calculator, RotateCcw, Save } from 'lucide-react';
 import { Input } from '../ui/Input';
@@ -10,6 +10,7 @@ interface FareCategory {
   baseFare: number;
   baseTaxes: number;
   notes?: string;
+  includeInPdf?: boolean;
 }
 
 interface AdvancedPricingEngineProps {
@@ -19,6 +20,9 @@ interface AdvancedPricingEngineProps {
   onPricingChange: (result: any) => void;
   onSave: (updatedCategories: FareCategory[]) => void;
   resetTrigger: number;
+  ravPercent?: number;
+  fee?: number;
+  incentivoPercent?: number;
 }
 
 export function AdvancedPricingEngine({ 
@@ -27,21 +31,24 @@ export function AdvancedPricingEngine({
   fareCategories,
   onPricingChange, 
   onSave,
-  resetTrigger 
+  resetTrigger,
+  ravPercent = 10,
+  fee = 0,
+  incentivoPercent = 0
 }: AdvancedPricingEngineProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [globalConfig, setGlobalConfig] = useState({
-    ravPercent: 10,
-    fee: 0,
-    incentivo: 0
+    ravPercent,
+    fee,
+    incentivoPercent
   });
   const [localParams, setLocalParams] = useState<PricingParams>({
     tarifa: 0,
     taxasBase: 0,
-    ravPercent: 10,
-    fee: 0,
-    incentivo: 0
+    ravPercent,
+    fee,
+    incentivo: 0 // Será calculado dinamicamente baseado no incentivoPercent
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -49,12 +56,15 @@ export function AdvancedPricingEngine({
   useEffect(() => {
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
+      const incentivoValue = globalConfig.incentivoPercent ? (currentCategory.baseFare * globalConfig.incentivoPercent / 100) : 0;
+      
+      
       setLocalParams({
         tarifa: currentCategory.baseFare,
         taxasBase: currentCategory.baseTaxes,
         ravPercent: globalConfig.ravPercent,
         fee: globalConfig.fee,
-        incentivo: globalConfig.incentivo
+        incentivo: incentivoValue
       });
     }
   }, [currentCategoryIndex, fareCategories, globalConfig]);
@@ -87,7 +97,7 @@ export function AdvancedPricingEngine({
   };
 
   // Atualizar configuração global
-  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'incentivo', value: number) => {
+  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'incentivoPercent', value: number) => {
     setGlobalConfig(prev => ({
       ...prev,
       [key]: value
@@ -98,12 +108,13 @@ export function AdvancedPricingEngine({
   // Restaurar valores originais
   const handleRestore = () => {
     if (currentCategory) {
+      const incentivoValue = globalConfig.incentivoPercent ? (currentCategory.baseFare * globalConfig.incentivoPercent / 100) : 0;
       setLocalParams({
         tarifa: currentCategory.baseFare,
         taxasBase: currentCategory.baseTaxes,
         ravPercent: globalConfig.ravPercent,
         fee: globalConfig.fee,
-        incentivo: globalConfig.incentivo
+        incentivo: incentivoValue
       });
       setHasChanges(false);
     }
@@ -126,10 +137,21 @@ export function AdvancedPricingEngine({
   };
 
   // Calcular total para exibição compacta (primeira categoria)
-  const compactTotal = fareCategories.length > 0 ? 
-    fareCategories[0].baseFare + fareCategories[0].baseTaxes + 
-    ((fareCategories[0].baseFare + fareCategories[0].baseTaxes) * 10 / 100) + 
-    0 + 0 : 0; // RAV 10%, Fee 0, Incentivo 0 (padrão)
+  const compactTotal = useMemo(() => {
+    if (fareCategories.length > 0) {
+      const baseFare = localParams.tarifa || fareCategories[0].baseFare;
+      const baseTaxes = localParams.taxasBase || fareCategories[0].baseTaxes;
+      
+      // Usar a mesma lógica da função computeTotals
+      const rav = Math.round(baseFare * (localParams.ravPercent / 100) * 100) / 100;
+      const comissao = Math.round((rav + localParams.fee + localParams.incentivo) * 100) / 100;
+      const taxasExibidas = Math.round((baseTaxes + comissao) * 100) / 100;
+      const total = Math.round((baseFare + taxasExibidas) * 100) / 100;
+      
+      return total;
+    }
+    return 0;
+  }, [fareCategories, localParams]);
 
   return (
     <div className="glass-card p-4">
@@ -301,12 +323,12 @@ export function AdvancedPricingEngine({
                 
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Incentivo (USD)
+                    Incentivo (%)
                   </label>
                   <Input
                     type="number"
-                    value={globalConfig.incentivo}
-                    onChange={(e) => handleGlobalConfigChange('incentivo', parseFloat(e.target.value) || 0)}
+                    value={globalConfig.incentivoPercent}
+                    onChange={(e) => handleGlobalConfigChange('incentivoPercent', parseFloat(e.target.value) || 0)}
                     className="w-full"
                   />
                 </div>

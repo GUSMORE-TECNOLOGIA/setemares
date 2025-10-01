@@ -13,11 +13,12 @@ interface AirportFormData {
   name: string;
   city_iata: string;
   country: string;
-  tz?: string;
-  active: boolean;
+  active?: boolean;
 }
 
 export function AirportsCatalog() {
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const { 
     data: airports, 
     loading, 
@@ -29,7 +30,7 @@ export function AirportsCatalog() {
     refetch, 
     changePage, 
     changeItemsPerPage 
-  } = useAirports();
+  } = useAirports({ search: searchQuery });
   const { create, update, remove, loading: crudLoading } = useSupabaseCRUD<AirportRow>('airports');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -40,7 +41,6 @@ export function AirportsCatalog() {
     name: '',
     city_iata: '',
     country: '',
-    tz: '',
     active: true
   });
 
@@ -116,7 +116,6 @@ export function AirportsCatalog() {
       name: '',
       city_iata: '',
       country: '',
-      tz: '',
       active: true
     });
     setIsModalOpen(true);
@@ -130,7 +129,6 @@ export function AirportsCatalog() {
       name: airport.name,
       city_iata: airport.city_iata,
       country: airport.country,
-      tz: airport.tz || '',
       active: airport.active
     });
     setIsModalOpen(true);
@@ -145,6 +143,10 @@ export function AirportsCatalog() {
         console.error('Erro ao excluir aeroporto:', error);
       }
     }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -208,6 +210,7 @@ export function AirportsCatalog() {
           onAdd={handleAdd}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onSearch={handleSearch}
           searchPlaceholder="Buscar por IATA, ICAO, nome ou país..."
           emptyMessage="Nenhum aeroporto encontrado"
         />
@@ -351,15 +354,17 @@ export function AirportsCatalog() {
         </form>
       </Modal>
 
-      {/* Paginação */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={total}
-        itemsPerPage={itemsPerPage}
-        onPageChange={changePage}
-        onItemsPerPageChange={changeItemsPerPage}
-      />
+      {/* Paginação - apenas quando não há busca */}
+      {!searchQuery.trim() && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={total}
+          itemsPerPage={itemsPerPage}
+          onPageChange={changePage}
+          onItemsPerPageChange={changeItemsPerPage}
+        />
+      )}
     </>
   );
 }

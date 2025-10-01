@@ -1,9 +1,9 @@
 // components/ModalDetalhesDecodificacao.tsx
-import * as React from "react";
 import {
   Dialog,
   DialogContent,
   DialogOverlay,
+  DialogTitle,
 } from "./ui/dialog";
 import { X } from "lucide-react";
 
@@ -32,6 +32,21 @@ type Props = {
   errors: any[];
   onCorrection?: (code: string, type: string, correctedValue: string) => void;
 };
+
+function formatDateTime(dateTimeString: string) {
+  if (!dateTimeString || dateTimeString === 'N/A') {
+    return 'N/A';
+  }
+  
+  // Formato esperado: "DD/MM/AAAA HH:MM"
+  const parts = dateTimeString.trim().split(' ');
+  if (parts.length !== 2) {
+    return dateTimeString; // Retorna como está se não conseguir parsear
+  }
+  
+  const [date, time] = parts;
+  return `${date} ${time}`;
+}
 
 function formatDate(iso: string) {
   if (!iso || iso === 'Invalid Date' || iso.includes('NaN')) {
@@ -97,38 +112,26 @@ export default function ModalDetalhesDecodificacao({
   errors = [],
   onCorrection,
 }: Props) {
-  // Debug: Log da estrutura dos dados
-  console.log('🔍 ModalDetalhesDecodificacao Debug:', {
-    decodedFlights,
-    errors,
-    decodedFlightsLength: decodedFlights.length,
-    errorsLength: errors.length
-  });
   
-  // Debug detalhado do primeiro voo
-  if (decodedFlights.length > 0) {
-    console.log('🔍 Primeiro voo detalhado:', decodedFlights[0]);
-    console.log('🔍 Estrutura do voo:', Object.keys(decodedFlights[0]));
-  }
-  
+
 
   // Combinar voos decodificados e erros em uma lista única
   const allSegments = [
     ...decodedFlights.map(flight => ({
-      airlineName: flight.airlineName || flight.airline || flight.company?.name || 'Unknown',
-      flightNumber: flight.flightNumber || flight.flight || 'N/A',
-      depAirportName: flight.departureAirport?.description || flight.depAirportName || 'Unknown',
-      depIata: flight.depIata || flight.departureAirport?.iataCode || 'N/A',
-      depCity: flight.depCity || 'Unknown',
-      depCountry: flight.depCountry || 'Unknown',
-      arrAirportName: flight.landingAirport?.description || flight.arrAirportName || 'Unknown',
-      arrIata: flight.arrIata || flight.landingAirport?.iataCode || 'N/A',
-      arrCity: flight.arrCity || 'Unknown',
-      arrCountry: flight.arrCountry || 'Unknown',
-      depDateIso: flight.depDateIso || flight.departureTime || new Date().toISOString(),
-      arrDateIso: flight.arrDateIso || flight.landingTime || new Date().toISOString(),
+      airlineName: flight.company?.description || 'Unknown',
+      flightNumber: flight.flight || 'N/A',
+      depAirportName: flight.departureAirport?.description || 'Unknown',
+      depIata: flight.departureAirport?.iataCode || 'N/A',
+      depCity: flight.departureAirport?.description?.split(', ')[1] || 'Unknown',
+      depCountry: flight.departureAirport?.description?.split(', ')[2] || 'Unknown',
+      arrAirportName: flight.landingAirport?.description || 'Unknown',
+      arrIata: flight.landingAirport?.iataCode || 'N/A',
+      arrCity: flight.landingAirport?.description?.split(', ')[1] || 'Unknown',
+      arrCountry: flight.landingAirport?.description?.split(', ')[2] || 'Unknown',
+      depDateIso: `${flight.departureDate} ${flight.departureTime}`,
+      arrDateIso: `${flight.landingDate} ${flight.landingTime}`,
       status: flight.status || 'success',
-      token: flight.token || flight.originalCode || `${flight.depIata || 'N/A'}${flight.arrIata || 'N/A'}`
+      token: `${flight.departureAirport?.iataCode || 'N/A'}${flight.landingAirport?.iataCode || 'N/A'}`
     })),
     ...errors.map(error => ({
       airlineName: 'Error',
@@ -240,20 +243,14 @@ export default function ModalDetalhesDecodificacao({
                     {/* HORÁRIO DE PARTIDA */}
                     <td className="px-6 py-5 align-top border-r border-slate-700/30">
                       <div className="text-base font-extrabold leading-tight text-slate-100">
-                        {formatDate(s.depDateIso)}
-                      </div>
-                      <div className="text-sm leading-tight text-slate-400">
-                        {formatTime(s.depDateIso)}
+                        {formatDateTime(s.depDateIso)}
                       </div>
                     </td>
 
                     {/* HORÁRIO DE CHEGADA */}
                     <td className="px-6 py-5 align-top border-r border-slate-700/30">
                       <div className="text-base font-extrabold leading-tight text-slate-100">
-                        {formatDate(s.arrDateIso)}
-                      </div>
-                      <div className="text-sm leading-tight text-slate-400">
-                        {formatTime(s.arrDateIso)}
+                        {formatDateTime(s.arrDateIso)}
                       </div>
                     </td>
 

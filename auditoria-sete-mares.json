@@ -1,0 +1,308 @@
+{
+  "generatedAt": "2025-09-24T00:00:00Z",
+  "project": "Sete Mares — 7Mares Cotador",
+  "modules": [
+    {
+      "name": "Frontend (Web/App)",
+      "score": 5.0,
+      "summary": "Vite/React/TS funcional, porém com muitos erros de tipo, componente principal muito grande e ausência de ESLint/A11y padronizados.",
+      "findings": [
+        {
+          "id": "CODE-TS-001",
+          "title": "TypeScript typecheck falha com >150 erros",
+          "severity": "medium",
+          "evidence": "npm --prefix desktop run typecheck falhando; App.tsx ~1353 linhas",
+          "recommendation": "Remover arquivo quebrado, instalar @types/fontkit, ajustar tipos em decoder e dividir App em páginas/rotas.",
+          "gate": "GATE 1",
+          "effort": "M"
+        },
+        {
+          "id": "CODE-LINT-001",
+          "title": "ESLint não configurado",
+          "severity": "medium",
+          "evidence": "Sem .eslintrc/eslint.config.* no projeto desktop",
+          "recommendation": "Adicionar eslint + eslint-plugin-react + eslint-plugin-jsx-a11y e pre-commit.",
+          "gate": "GATE 1",
+          "effort": "S"
+        },
+        {
+          "id": "CODE-DUP-001",
+          "title": "Dois componentes QuotePreview com papéis semelhantes",
+          "severity": "low",
+          "evidence": "decoder/QuotePreview.tsx e quote/QuotePreview.tsx",
+          "recommendation": "Consolidar APIs e nomes para reduzir confusão/duplicação.",
+          "gate": "GATE 1",
+          "effort": "S"
+        },
+        {
+          "id": "PERF-BUNDLE-001",
+          "title": "Import monolítico de libs pesadas (PDF)",
+          "severity": "low",
+          "evidence": "@react-pdf/renderer importado globalmente",
+          "recommendation": "Aplicar code-splitting e dynamic import apenas nas rotas que geram PDF.",
+          "gate": "GATE 5",
+          "effort": "S"
+        }
+      ]
+    },
+    {
+      "name": "Backend/API",
+      "score": 3.0,
+      "summary": "Servidor Express auxiliar de PDF sem segurança básica (Helmet, rate limiting, CORS restrito) e sem validação de payload.",
+      "findings": [
+        {
+          "id": "SEC-API-001",
+          "title": "Express sem Helmet/CSP e sem rate limiting",
+          "severity": "high",
+          "evidence": "desktop/server.cjs sem middlewares de segurança",
+          "recommendation": "Adicionar helmet, limiter (p.ex. express-rate-limit), CORS por origem e validação zod do body.",
+          "gate": "GATE 2",
+          "effort": "M"
+        }
+      ]
+    },
+    {
+      "name": "Integrações",
+      "score": 6.0,
+      "summary": "Supabase, Playwright e integração ao pnrsh (binário externo) operacionais, porém com chaves expostas e build do pnrsh não automatizado no CI.",
+      "findings": [
+        {
+          "id": "SEC-SUPA-001",
+          "title": "Fallback de chave/URL Supabase em código + log de key",
+          "severity": "medium",
+          "evidence": "desktop/src/lib/supabase.ts expõe defaults e faz console.log",
+          "recommendation": "Remover logs, usar somente env vars por ambiente e segregar permissões no Supabase.",
+          "gate": "GATE 2",
+          "effort": "XS"
+        },
+        {
+          "id": "INT-PNRSH-001",
+          "title": "Dependência de binário externo (pnrsh) sem pin no CI",
+          "severity": "low",
+          "evidence": "build manual via scripts/build_pnrsh.ps1 e VERSION salvo",
+          "recommendation": "Automatizar build/pin do commit no CI e validar presença antes de releases.",
+          "gate": "GATE 6",
+          "effort": "S"
+        }
+      ]
+    },
+    {
+      "name": "Banco de Dados",
+      "score": 4.0,
+      "summary": "Schema para catálogos/overrides/telemetria existe, porém sem RLS e sem fluxo de migrações versionadas.",
+      "findings": [
+        {
+          "id": "DB-RLS-001",
+          "title": "RLS ausente nas tabelas do Supabase",
+          "severity": "high",
+          "evidence": "SQLs não contêm CREATE POLICY/RLS",
+          "recommendation": "Ativar RLS e criar políticas por papel (anon/auth/service) para cada tabela; WITH CHECK adequado.",
+          "gate": "GATE 4",
+          "effort": "M"
+        },
+        {
+          "id": "DB-MIG-001",
+          "title": "Migrações não versionadas/automatizadas",
+          "severity": "medium",
+          "evidence": "Arquivos SQL soltos em desktop/db/sql",
+          "recommendation": "Adotar migrações (p.ex. Supabase CLI) com histórico e rollback.",
+          "gate": "GATE 4",
+          "effort": "M"
+        }
+      ]
+    },
+    {
+      "name": "Segurança",
+      "score": 3.5,
+      "summary": "Exposição de .env.local, falta de headers e scans; CSP/Helmet ausentes; rate limiting ausente.",
+      "findings": [
+        {
+          "id": "SEC-ENV-001",
+          "title": ".env.local commitado no repositório",
+          "severity": "medium",
+          "evidence": "desktop/.env.local com chaves Supabase",
+          "recommendation": "Adicionar ao .gitignore, usar env de runtime e rotacionar chaves conforme necessário.",
+          "gate": "GATE 2",
+          "effort": "XS"
+        },
+        {
+          "id": "SEC-SCAN-001",
+          "title": "Sem gitleaks e trivy no pipeline",
+          "severity": "medium",
+          "evidence": "Não há CI nem scanners configurados",
+          "recommendation": "Adicionar gitleaks detect e trivy filesystem no CI",
+          "gate": "GATE 2",
+          "effort": "S"
+        }
+      ]
+    },
+    {
+      "name": "DevOps/CI-CD",
+      "score": 4.0,
+      "summary": "Sem workflows; scripts básicos existem. Prover CI com lint/types/tests/build/scan e release notes.",
+      "findings": [
+        {
+          "id": "CI-PIPE-001",
+          "title": "Pipeline de CI inexistente",
+          "severity": "medium",
+          "evidence": "Sem .github/workflows",
+          "recommendation": "Criar CI com jobs separados para web e python, e gates de qualidade.",
+          "gate": "GATE 0",
+          "effort": "M"
+        }
+      ]
+    },
+    {
+      "name": "UX/UI",
+      "score": 6.0,
+      "summary": "UI PySide6 evoluída com temas; Web tem boas bases visuais. Acessibilidade precisa de padronização/teste.",
+      "findings": [
+        {
+          "id": "A11Y-001",
+          "title": "A11y não sistematizada no web",
+          "severity": "medium",
+          "evidence": "Sem eslint-plugin-jsx-a11y e testes de teclado",
+          "recommendation": "Adicionar plugin, checar foco/contraste e landmarks ARIA.",
+          "gate": "GATE 3",
+          "effort": "S"
+        }
+      ]
+    },
+    {
+      "name": "Qualidade de Código",
+      "score": 6.0,
+      "summary": "Python com testes e modularidade; TS precisa higienização, remoção de dead code e configuração de lint.",
+      "findings": [
+        {
+          "id": "CODE-DEAD-001",
+          "title": "Arquivo App-broken.tsx não usado e com erros",
+          "severity": "low",
+          "evidence": "desktop/src/app/App-broken.tsx",
+          "recommendation": "Remover do repo ou excluir via tsconfig/exclude.",
+          "gate": "GATE 1",
+          "effort": "XS"
+        }
+      ]
+    },
+    {
+      "name": "Documentação",
+      "score": 5.0,
+      "summary": "README útil porém com encoding corrompido; docs de DB boas; faltam ADRs e playbooks.",
+      "findings": [
+        {
+          "id": "DOC-READ-001",
+          "title": "Encoding corrompido no README",
+          "severity": "low",
+          "evidence": "README.md contém caracteres inválidos",
+          "recommendation": "Padronizar UTF-8 e revisar conteúdo; adicionar ADRs mínimos.",
+          "gate": "GATE 6",
+          "effort": "S"
+        }
+      ]
+    }
+  ],
+  "validationGroups": [
+    { "group": "Higiene de Código", "score": 6.0, "notes": "TS com erros; deps não usadas; Python ok com testes." },
+    { "group": "Arquitetura & Padrões", "score": 5.0, "notes": "Componente God no web; backend auxiliar sem camadas." },
+    { "group": "Segurança", "score": 3.5, "notes": "Helmet/CSP/ratelimit ausentes; env no repo; scanners ausentes." },
+    { "group": "Dados/DB", "score": 4.0, "notes": "RLS ausente; migrações não versionadas." },
+    { "group": "Performance", "score": 5.0, "notes": "Sem code-splitting em libs pesadas; oportunidade de lazy import." },
+    { "group": "UX/UI & A11y", "score": 5.5, "notes": "Temas/estados razoáveis; a11y por padronizar." },
+    { "group": "Confiabilidade", "score": 4.0, "notes": "Sem logs/métricas/tracing no serviço Node." },
+    { "group": "DevEx", "score": 5.0, "notes": "Sem CI, sem templates de PR; scripts existem mas faltam linters." }
+  ],
+  "actions": [
+    {
+      "gate": "GATE 0",
+      "title": "Habilitar CI (lint+types+pytest+build+scans)",
+      "owner": "DevOps",
+      "acceptanceCriteria": "Workflow GitHub Actions executa jobs com sucesso em PRs e main; artefatos de build anexados; relatórios de scans publicados.",
+      "steps": [
+        "Criar .github/workflows/ci.yml com jobs web e python",
+        "Executar eslint+tsc no desktop/",
+        "Executar pytest (.venv) e publicar resultados",
+        "Executar npm audit e gitleaks detect",
+        "Build vite (preview)"
+      ],
+      "dependencies": []
+    },
+    {
+      "gate": "GATE 1",
+      "title": "Sanear TypeScript e remover dead code",
+      "owner": "Frontend",
+      "acceptanceCriteria": "npm run typecheck sem erros; depcheck/knip sem críticos; App-broken.tsx removido ou excluído.",
+      "steps": [
+        "Instalar @types/fontkit",
+        "Excluir App-broken.tsx e ajustar tsconfig",
+        "Corrigir imports '@/...' quebrados",
+        "Introduzir ESLint + regras de unused-imports",
+        "Dividir App.tsx em páginas/rotas"
+      ],
+      "dependencies": ["GATE 0"]
+    },
+    {
+      "gate": "GATE 2",
+      "title": "Endurecer segurança do server.cjs e Supabase",
+      "owner": "Backend",
+      "acceptanceCriteria": "Helmet, rate limit e CORS por origem ativos; validação zod no endpoint; sem logs de chaves; .env.local fora do repo.",
+      "steps": [
+        "Adicionar helmet e express-rate-limit",
+        "Configurar CORS com origem específica",
+        "Validar body com zod e limitar tamanho",
+        "Remover console.log de chaves e usar env"
+      ],
+      "dependencies": ["GATE 0"]
+    },
+    {
+      "gate": "GATE 3",
+      "title": "Padronizar A11y na aplicação web",
+      "owner": "Frontend",
+      "acceptanceCriteria": "Lint a11y sem erros críticos; navegação por teclado e contraste AA verificados.",
+      "steps": [
+        "Adicionar eslint-plugin-jsx-a11y",
+        "Padronizar foco e landmarks ARIA",
+        "Criar testes manuais de teclado"
+      ],
+      "dependencies": ["GATE 1"]
+    },
+    {
+      "gate": "GATE 4",
+      "title": "Implementar RLS no Supabase e migrações",
+      "owner": "DBA",
+      "acceptanceCriteria": "Todas as tabelas com RLS e políticas mínimas por papel; migrações versionadas e reproduzíveis.",
+      "steps": [
+        "Ativar RLS em airlines/airports/aliases/overrides/decode_events",
+        "Criar políticas SELECT/INSERT/UPDATE/DELETE por papel",
+        "Adicionar índices em campos de lookup",
+        "Configurar Supabase CLI para migrações"
+      ],
+      "dependencies": []
+    },
+    {
+      "gate": "GATE 5",
+      "title": "Code-splitting e observabilidade",
+      "owner": "Frontend/Backend",
+      "acceptanceCriteria": "Bundle reduzido com lazy PDF; logs/métricas no server ativados e exportados.",
+      "steps": [
+        "Aplicar dynamic import para @react-pdf/renderer",
+        "Usar vite-bundle-visualizer",
+        "Adicionar pino (logs) e métricas básicas"
+      ],
+      "dependencies": ["GATE 2"]
+    },
+    {
+      "gate": "GATE 6",
+      "title": "Documentação, ADRs e templates",
+      "owner": "Engenharia",
+      "acceptanceCriteria": "README UTF-8 corrigido; ADRs mínimas; templates de PR/Issue e CHANGELOG configurados.",
+      "steps": [
+        "Corrigir encoding do README",
+        "Escrever ADRs de decisões-chave (Supabase/Playwright)",
+        "Criar templates .github para PR/Issues",
+        "Configurar Conventional Commits + changelog"
+      ],
+      "dependencies": []
+    }
+  ]
+}
+
