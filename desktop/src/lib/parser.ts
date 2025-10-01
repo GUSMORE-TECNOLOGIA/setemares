@@ -184,36 +184,49 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
         taxas: taxasValue,
       }];
     } else {
-      // Último fallback - método antigo
-      const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
-      const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
-      
-      fares = tarifaMatches.map((tarifa, i) => {
-        const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
-        const taxasValue = taxasMatches[i]?.match(/txs\s+USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
-        
-        // Detectar categoria do sufixo
-        const lineIndex = pnrText.indexOf(tarifa);
-        const lineEnd = pnrText.indexOf('\n', lineIndex);
-        const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
-        
-        let category = 'ADT';
-        if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
-          category = 'CHD';
-        } else if (fullLine.toLowerCase().includes('exe')) {
-          category = 'Exe';
-        } else if (fullLine.toLowerCase().includes('eco')) {
-          category = 'Eco';
-        } else if (fullLine.toLowerCase().includes('pre')) {
-          category = 'Pre';
-        }
-        
-        return {
-          category,
+      // NOVO: aceitar linha sem classe (sem '* ...')
+      const noClassTarifa = pnrText.match(/tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)/i)
+        || pnrText.match(/usd\s*([\d.,]+)\s*\+\s*txs\s+usd\s*([\d.,]+)/i);
+      if (noClassTarifa) {
+        const tarifaValue = noClassTarifa[1]?.replace(',', '.') || '0';
+        const taxasValue = noClassTarifa[2]?.replace(',', '.') || '0';
+        fares = [{
+          category: 'Tarifa',
           tarifa: tarifaValue,
-          taxas: taxasValue,
-        };
-      });
+          taxas: taxasValue
+        }];
+      } else {
+        // Último fallback - método antigo
+        const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
+        const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
+        
+        fares = tarifaMatches.map((tarifa, i) => {
+          const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+          const taxasValue = taxasMatches[i]?.match(/txs\s+USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+          
+          // Detectar categoria do sufixo
+          const lineIndex = pnrText.indexOf(tarifa);
+          const lineEnd = pnrText.indexOf('\n', lineIndex);
+          const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
+          
+          let category = 'ADT';
+          if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
+            category = 'CHD';
+          } else if (fullLine.toLowerCase().includes('exe')) {
+            category = 'Exe';
+          } else if (fullLine.toLowerCase().includes('eco')) {
+            category = 'Eco';
+          } else if (fullLine.toLowerCase().includes('pre')) {
+            category = 'Pre';
+          }
+          
+          return {
+            category,
+            tarifa: tarifaValue,
+            taxas: taxasValue,
+          };
+        });
+      }
     }
   }
   
