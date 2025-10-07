@@ -53,6 +53,53 @@ export function BookingsPage() {
   const hasComplexPricingOptions = isComplexPNR && parsedOptions.length > 0;
   const hasSimplePricingData = !isComplexPNR && (simplePnrData?.fares?.length ?? 0) > 0;
 
+  // Para PNRs complexos, criar um simplePnrData temporário da primeira opção para o SimpleSummary
+  const summaryData = useMemo(() => {
+    if (!isComplexPNR || !parsedOptions[0]) {
+      // Para PNRs simples, incluir observações dos Metadados da Cotação
+      return simplePnrData ? {
+        ...simplePnrData,
+        observation: quoteObservation
+      } : simplePnrData;
+    }
+    
+    const firstOption = parsedOptions[0];
+    return {
+      segments: firstOption.segments || [],
+      fares: firstOption.fares || [],
+      paymentTerms: firstOption.paymentTerms,
+      notes: firstOption.notes || '',
+      numParcelas: firstOption.numParcelas,
+      ravPercent: firstOption.ravPercent,
+      incentivoPercent: firstOption.incentivoPercent,
+      // Incluir observações dos Metadados da Cotação
+      observation: quoteObservation
+    } as any;
+  }, [isComplexPNR, parsedOptions, simplePnrData, pricingResult, quoteObservation]);
+
+  // Para PNRs complexos, criar um pricingResult baseado no summaryData
+  const summaryPricingResult = useMemo(() => {
+    if (!summaryData?.fares?.length) return pricingResult;
+    
+    // Calcular totais baseados no summaryData
+    const totalBaseFare = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseFare || fare.tarifa || 0), 0);
+    const totalBaseTaxes = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseTaxes || fare.taxas || 0), 0);
+    const ravPercent = summaryData.ravPercent || 10;
+    const incentivoPercent = summaryData.incentivoPercent || 0;
+    
+    const ravValue = totalBaseFare * (ravPercent / 100);
+    const incentivoValue = totalBaseFare * (incentivoPercent / 100);
+    
+    return {
+      tarifa: totalBaseFare,
+      taxasBase: totalBaseTaxes,
+      rav: ravValue,
+      comissao: ravValue + incentivoValue,
+      taxasExibidas: totalBaseTaxes + ravValue + incentivoValue,
+      total: totalBaseFare + totalBaseTaxes + ravValue + incentivoValue
+    };
+  }, [summaryData, pricingResult]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-12 gap-6">
@@ -94,6 +141,10 @@ export function BookingsPage() {
                 onPricingChange={setPricingResultFromEngine}
                 onSave={(updatedCategories) => updateOptionPricing(optionIndex, updatedCategories)}
                 resetTrigger={resetTrigger}
+                ravPercent={option.ravPercent}
+                fee={0}
+                incentivoPercent={option.incentivoPercent}
+                numParcelas={option.numParcelas}
               />
             ))
           ) : hasSimplePricingData ? (
@@ -114,6 +165,7 @@ export function BookingsPage() {
               ravPercent={simplePnrData?.ravPercent}
               fee={0}
               incentivoPercent={simplePnrData?.incentivoPercent}
+              numParcelas={simplePnrData?.numParcelas}
             />
           ) : (
             <div className="glass-card p-6 text-center text-sm text-slate-400">
@@ -123,9 +175,11 @@ export function BookingsPage() {
         </div>
 
         <SimpleSummary
-          pnrData={simplePnrData}
-          pricingResult={pricingResult}
+          pnrData={summaryData}
+          pricingResult={summaryPricingResult}
           updatedFares={simpleSummaryFares}
+          decodedFlights={decodedFlights}
+          numParcelas={pricingResult?.numParcelas || summaryData?.numParcelas}
         />
       </div>
 

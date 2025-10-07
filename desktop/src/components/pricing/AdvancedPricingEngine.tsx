@@ -2,15 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { Button } from '../ui/Button';
 import { ChevronLeft, ChevronRight, Calculator, RotateCcw, Save } from 'lucide-react';
 import { Input } from '../ui/Input';
-import { computeTotals, formatCurrency, formatPercent, validatePricingParams, PricingParams, PricingResult } from '../../lib/pricing';
+import { computeTotals, formatCurrency, PricingParams } from '../../lib/pricing';
 
 interface FareCategory {
   fareClass: string;
-  paxType: string;
+  paxType: "ADT" | "CHD" | "INF";
   baseFare: number;
   baseTaxes: number;
   notes?: string;
-  includeInPdf?: boolean;
+  includeInPdf: boolean;
 }
 
 interface AdvancedPricingEngineProps {
@@ -23,6 +23,7 @@ interface AdvancedPricingEngineProps {
   ravPercent?: number;
   fee?: number;
   incentivoPercent?: number;
+  numParcelas?: number;
 }
 
 export function AdvancedPricingEngine({ 
@@ -34,14 +35,16 @@ export function AdvancedPricingEngine({
   resetTrigger,
   ravPercent = 10,
   fee = 0,
-  incentivoPercent = 0
+  incentivoPercent = 0,
+  numParcelas
 }: AdvancedPricingEngineProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [globalConfig, setGlobalConfig] = useState({
     ravPercent,
     fee,
-    incentivoPercent
+    incentivoPercent,
+    numParcelas: numParcelas || 4
   });
   const [localParams, setLocalParams] = useState<PricingParams>({
     tarifa: 0,
@@ -51,6 +54,28 @@ export function AdvancedPricingEngine({
     incentivo: 0 // Será calculado dinamicamente baseado no incentivoPercent
   });
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Sincronizar quando props mudarem (ex.: parser detecta incentivo 2%)
+  useEffect(() => {
+    // Só atualizar numParcelas se não foi editado manualmente (manter valor atual se já foi modificado)
+    setGlobalConfig(prevConfig => ({
+      ravPercent,
+      fee,
+      incentivoPercent,
+      numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4)
+    }));
+    if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
+      const currentCategory = fareCategories[currentCategoryIndex];
+      const incentivoValue = incentivoPercent ? (currentCategory.baseFare * incentivoPercent / 100) : 0;
+      setLocalParams({
+        tarifa: currentCategory.baseFare,
+        taxasBase: currentCategory.baseTaxes,
+        ravPercent,
+        fee,
+        incentivo: incentivoValue
+      });
+    }
+  }, [ravPercent, fee, incentivoPercent, fareCategories, currentCategoryIndex]);
 
   // Atualizar parâmetros locais quando mudar de categoria
   useEffect(() => {
@@ -97,7 +122,7 @@ export function AdvancedPricingEngine({
   };
 
   // Atualizar configuração global
-  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'incentivoPercent', value: number) => {
+  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'incentivoPercent' | 'numParcelas', value: number) => {
     setGlobalConfig(prev => ({
       ...prev,
       [key]: value
@@ -132,8 +157,11 @@ export function AdvancedPricingEngine({
     onSave(updatedCategories);
     setHasChanges(false);
     
-    // Notificar mudança de pricing
-    onPricingChange(currentResult);
+    // Notificar mudança de pricing incluindo numParcelas
+    onPricingChange({
+      ...currentResult,
+      numParcelas: globalConfig.numParcelas
+    });
   };
 
   // Calcular total para exibição compacta (primeira categoria)
@@ -331,6 +359,28 @@ export function AdvancedPricingEngine({
                     onChange={(e) => handleGlobalConfigChange('incentivoPercent', parseFloat(e.target.value) || 0)}
                     className="w-full"
                   />
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Nº Parcelas
+                  </label>
+                  <Input
+                    type="number"
+                    value={globalConfig.numParcelas}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Permitir valores vazios temporariamente, mas usar 4 como fallback apenas quando necessário
+                      const numValue = value === '' ? undefined : parseFloat(value);
+                      handleGlobalConfigChange('numParcelas', numValue || 4);
+                    }}
+                    className="w-full"
+                    min={1}
+                    max={36}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Em até {globalConfig.numParcelas}x no cartão de crédito
+                  </p>
                 </div>
               </div>
             </div>

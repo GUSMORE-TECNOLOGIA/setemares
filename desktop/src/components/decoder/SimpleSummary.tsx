@@ -4,6 +4,8 @@ interface SimpleSummaryProps {
   pnrData: any;
   pricingResult: any;
   updatedFares?: any[];
+  decodedFlights?: any[];
+  numParcelas?: number;
 }
 
 const DEFAULT_PAYMENT_TERMS = 'Em até 4x no cartão de crédito. Taxas à vista.';
@@ -31,8 +33,21 @@ function formatDateTime(value: string | undefined): string {
     return '--';
   }
 
-  const date = new Date(value);
+  // Formato: "13/04/2026 09:50" (dd/mm/yyyy hh:mm)
+  const match = value.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})/);
+  if (match) {
+    const [, day, month, year, hour, minute] = match;
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
 
+  // Fallback para ISO ou outros formatos
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return '--';
   }
@@ -45,12 +60,19 @@ function formatDateTime(value: string | undefined): string {
   });
 }
 
-export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSummaryProps) {
-  const segments = Array.isArray(pnrData?.segments) ? pnrData.segments : [];
+export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFlights, numParcelas }: SimpleSummaryProps) {
+  const segments = Array.isArray(decodedFlights) && decodedFlights.length
+    ? decodedFlights
+    : Array.isArray(pnrData?.segments) ? pnrData.segments : [];
   const fares = updatedFares ?? (Array.isArray(pnrData?.fares) ? pnrData.fares : []);
-  const paymentTerms = pnrData?.paymentTerms ?? DEFAULT_PAYMENT_TERMS;
+  
+  // Construir payment terms dinamicamente com base em numParcelas
+  const finalNumParcelas = numParcelas || pnrData?.numParcelas || 4;
+  const paymentTerms = pnrData?.paymentTerms || `Em até ${finalNumParcelas}x no cartão de crédito. Taxas à vista.`;
+  
   const baggage = pnrData?.baggage ?? DEFAULT_BAGGAGE;
-  const notes = pnrData?.notes ?? '';
+  // Priorizar observações dos Metadados da Cotação, depois notes do PNR
+  const notes = pnrData?.observation || pnrData?.notes || '';
 
   const hasSummaryData = Boolean(segments.length || fares.length || pricingResult);
 
@@ -67,19 +89,67 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSu
                 Itinerário
               </h4>
               <div className="space-y-2">
-                {segments.map((segment: any, index: number) => (
-                  <div key={index} className="flex flex-wrap items-center justify-between gap-4 text-sm bg-slate-600/30 rounded p-3">
-                    <div className="font-medium text-slate-200">
-                      {segment.carrier} {segment.flight}
+                {segments.map((segment: any, index: number) => {
+                  // Usar dados do decodedFlights se disponível (formato correto)
+                  const companyCode = segment.company?.iataCode || segment.carrier || '--';
+                  const flightNumber = segment.flight || '--';
+                  
+                  // Extrair IATA codes dos aeroportos
+                  let depAirport = '--';
+                  let arrAirport = '--';
+                  let depTime;
+                  let arrTime;
+                  
+                  // Formato decodedFlights (departureAirport, landingAirport)
+                  if (segment.departureAirport?.iataCode) {
+                    depAirport = segment.departureAirport.iataCode;
+                    depTime = `${segment.departureDate} ${segment.departureTime}`;
+                  } 
+                  // Formato alternativo (departure, arrival)
+                  else if (segment.departure?.iataCode) {
+                    depAirport = segment.departure.iataCode;
+                    depTime = segment.departure.dateTimeISO || segment.depTimeISO;
+                  } 
+                  // Formato string "São Paulo (GRU)"
+                  else if (segment.depAirport) {
+                    const depMatch = segment.depAirport.match(/\(([A-Z]{3})\)/);
+                    depAirport = depMatch ? depMatch[1] : segment.depAirport.slice(0, 3).toUpperCase();
+                    depTime = segment.depTimeISO;
+                  }
+                  
+                  // Formato decodedFlights (landingAirport)
+                  if (segment.landingAirport?.iataCode) {
+                    arrAirport = segment.landingAirport.iataCode;
+                    arrTime = segment.landingDate && segment.landingTime 
+                      ? `${segment.landingDate} ${segment.landingTime}` 
+                      : segment.arrTimeISO || '--';
+                  } 
+                  // Formato alternativo (arrival)
+                  else if (segment.arrival?.iataCode) {
+                    arrAirport = segment.arrival.iataCode;
+                    arrTime = segment.arrival.dateTimeISO || segment.arrTimeISO;
+                  } 
+                  // Formato string "Frankfurt (FRA)"
+                  else if (segment.arrAirport) {
+                    const arrMatch = segment.arrAirport.match(/\(([A-Z]{3})\)/);
+                    arrAirport = arrMatch ? arrMatch[1] : segment.arrAirport.slice(0, 3).toUpperCase();
+                    arrTime = segment.arrTimeISO;
+                  }
+                  
+                  return (
+                    <div key={index} className="flex flex-wrap items-center justify-between gap-4 text-sm bg-slate-600/30 rounded p-3">
+                      <div className="font-medium text-slate-200">
+                        {companyCode} {flightNumber}
+                      </div>
+                      <div className="text-slate-300">
+                        {depAirport} → {arrAirport}
+                      </div>
+                      <div className="text-slate-400">
+                        {formatDateTime(depTime)} → {formatDateTime(arrTime)}
+                      </div>
                     </div>
-                    <div className="text-slate-300">
-                      {segment.depAirport} → {segment.arrAirport}
-                    </div>
-                    <div className="text-slate-400">
-                      {formatDateTime(segment.depTimeISO)} → {formatDateTime(segment.arrTimeISO)}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {segments.length === 0 && (
                   <div className="text-sm text-slate-400 bg-slate-700/20 rounded p-3 text-center">
@@ -105,11 +175,12 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSu
                     let totalDisplay = baseFareValue + baseTaxesValue;
                     let extrasDisplay = 0;
                     
-                    if (pricingResult && pnrData?.ravPercent !== undefined && pnrData?.incentivoPercent !== undefined) {
-                      // Calcular incentivo individual
-                      const incentivoValue = baseFareValue * (pnrData.incentivoPercent / 100);
-                      const ravValue = baseFareValue * ((pnrData.ravPercent || 10) / 100);
-                      
+                    if (pricingResult) {
+                      const ravPercent = typeof pnrData?.ravPercent === 'number' ? pnrData.ravPercent : 10;
+                      const incentivoPercent = typeof pnrData?.incentivoPercent === 'number' ? pnrData.incentivoPercent : 0;
+                      const incentivoValue = baseFareValue * (incentivoPercent / 100);
+                      const ravValue = baseFareValue * (ravPercent / 100);
+
                       taxesDisplay = baseTaxesValue + ravValue + incentivoValue;
                       totalDisplay = baseFareValue + taxesDisplay;
                       extrasDisplay = ravValue + incentivoValue;
@@ -125,7 +196,7 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSu
                           USD {formatCurrency(baseFareValue)} + USD {formatCurrency(taxesDisplay)} taxas
                         </div>
                         <div className="text-xs text-slate-500 mb-2">
-                          {pricingResult && pnrData?.ravPercent !== undefined && pnrData?.incentivoPercent !== undefined
+                          {pricingResult
                             ? `Encargos adicionais: USD ${formatCurrency(extrasDisplay)}`
                             : '+ RAV + Fee + Incentivo'}
                         </div>
@@ -149,7 +220,9 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSu
                   <CreditCard className="w-4 h-4 mr-2" />
                   Pagamento
                 </h5>
-                <div className="text-slate-400">{paymentTerms}</div>
+                <div className="text-slate-400">
+                  Em até {finalNumParcelas}x no cartão de crédito. Taxas à vista.
+                </div>
               </div>
 
               <div>
@@ -173,7 +246,7 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares }: SimpleSu
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-sm text-slate-400">
             <Calendar className="w-5 h-5 text-slate-500" />
             <p className="max-w-xs">
-              Cole um PNR no editor e clique em Executar para visualizar o resumo da cotaÃ§Ã£o.
+              Cole um PNR no editor e clique em Executar para visualizar o resumo da cotação.
             </p>
           </div>
         )}

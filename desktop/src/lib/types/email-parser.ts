@@ -10,6 +10,9 @@ export type ParsedOption = {
   segments: ParsedSegment[];
   fares: ParsedFare[];         // múltiplas categorias
   baggage?: ParsedBaggage[];   // opcional
+  numParcelas?: number;        // número de parcelas detectado
+  ravPercent?: number;         // percentual de RAV detectado
+  incentivoPercent?: number;   // percentual de Incentivo detectado
 };
 
 export type ParsedSegment = {

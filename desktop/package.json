@@ -6,12 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "vite build --mode production",
     "preview": "vite preview",
     "server": "node server.js",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "vercel-build": "vite build",
-    "fix": "eslint \"src/**/*.{ts,tsx}\" --fix"
+    "fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
+    "bundle:analyze": "npm run build:analyze && echo 'Bundle analysis disponível em dist/bundle-analysis.html'"
   },
   "keywords": [],
   "author": "",
@@ -31,6 +33,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-unused-imports": "^4.0.1",
     "postcss": "^8.5.6",
+    "rollup-plugin-visualizer": "^6.0.4",
     "tailwindcss": "^3.4.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"

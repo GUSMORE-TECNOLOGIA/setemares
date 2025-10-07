@@ -22,6 +22,7 @@ export interface SimpleBookingSummary {
   paymentTerms: string;
   baggage: string;
   notes: string;
+  numParcelas?: number;
   ravPercent?: number;
   incentivoPercent?: number;
 }

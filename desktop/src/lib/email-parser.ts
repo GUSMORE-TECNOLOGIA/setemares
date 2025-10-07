@@ -1,5 +1,5 @@
 // EMAIL-MULTI-002: Parser de e-mail com múltiplas opções
-import { ParsedEmail, ParsedOption, ParsedSegment, ParsedFare, ParsedBaggage } from './types/email-parser';
+import { ParsedEmail, ParsedSegment, ParsedFare, ParsedBaggage } from './types/email-parser';
 
 /**
  * Filtra automaticamente as duas primeiras linhas de cada bloco de reserva
@@ -81,11 +81,26 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
     const baggage = parseBaggage(text);
     const notes = findStandaloneNotes(text);
     
+    // Detectar número de parcelas - formato: "pagto 10x" ou "parcela 4x"
+    const parcelasMatch = text.match(/(?:pagto|parcela(?:do)?)\s+(\d+)x/i);
+    const numParcelas = parcelasMatch ? parseInt(parcelasMatch[1]) : undefined;
+    
+    // Detectar percentual de RAV - formato: "du 7%"
+    const ravMatch = text.match(/du\s+(\d+)%/i);
+    const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
+    
+    // Detectar percentual de Incentivo - formato: "in 2%"
+    const incentivoMatch = text.match(/in\s+(\d+)%/i);
+    const incentivoPercent = incentivoMatch ? parseInt(incentivoMatch[1]) : undefined;
+    
     console.log(`✈️ Segmentos encontrados:`, segments);
     console.log(`💰 Tarifas encontradas:`, fares);
     console.log(`💳 Pagamento:`, payment);
     console.log(`🎒 Bagagem:`, baggage);
     console.log(`📝 Notas:`, notes);
+    console.log(`📊 Parcelas:`, numParcelas);
+    console.log(`📊 RAV:`, ravPercent);
+    console.log(`📊 Incentivo:`, incentivoPercent);
     
     return {
       label: `Opção ${idx + 1}`,
@@ -93,7 +108,10 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
       notes: notes || undefined,
       segments,
       fares: fares.map(f => ({ ...f, includeInPdf: true })),
-      baggage
+      baggage,
+      numParcelas,
+      ravPercent,
+      incentivoPercent
     };
   });
   
@@ -256,6 +274,7 @@ function parseFareLines(text: string): ParsedFare[] {
         paxType,
         baseFare,
         baseTaxes,
+        includeInPdf: true,
         notes: undefined // Não usar notes separadas, o fareClass já contém tudo
       });
       continue;
@@ -272,6 +291,7 @@ function parseFareLines(text: string): ParsedFare[] {
         paxType: 'ADT',
         baseFare: sanitizeNumber(baseFareStr),
         baseTaxes: sanitizeNumber(baseTaxesStr),
+        includeInPdf: true,
         notes: undefined
       });
     }
@@ -434,7 +454,7 @@ function paxTypeFromLabel(label: string): 'ADT'|'CHD'|'INF' {
  */
 function extractNotes(label: string): string | null {
   // Remover classe de tarifa e tipo de pax do início
-  let notes = label
+  const notes = label
     .replace(/^(exe|pre|eco|premeco)\s*/i, '')
     .replace(/^\s*\/?(chd|inf|adt)\s*/i, '')
     .trim();

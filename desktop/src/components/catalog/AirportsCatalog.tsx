@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Plane, Globe, Edit2, Trash2, Plus } from 'lucide-react';
+import { MapPin, Plane, Globe, Plus } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';

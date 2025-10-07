@@ -18,8 +18,14 @@ module.exports = {
           800: '#9A3412',
           900: '#7C2D12',
         },
-        surface: '#0b1220',
-        navy: '#0f172a',
+        surface: {
+          light: '#ffffff',
+          dark: '#0b1220',
+        },
+        navy: {
+          light: '#f8fafc',
+          dark: '#0f172a',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui'],
@@ -32,6 +38,9 @@ module.exports = {
         'elev-1': '0 1px 2px 0 rgb(0 0 0 / 0.25)',
         'elev-2': '0 8px 24px -8px rgb(0 0 0 / 0.35)',
         'elev-3': '0 20px 40px -12px rgb(0 0 0 / 0.45)',
+        'elev-1-light': '0 1px 2px 0 rgb(0 0 0 / 0.1)',
+        'elev-2-light': '0 8px 24px -8px rgb(0 0 0 / 0.15)',
+        'elev-3-light': '0 20px 40px -12px rgb(0 0 0 / 0.2)',
       },
     },
   },

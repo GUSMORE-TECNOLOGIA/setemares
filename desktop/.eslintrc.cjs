@@ -12,6 +12,7 @@ module.exports = {
     "unused-imports/no-unused-imports": "error",
     "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
     "react/jsx-key": "warn",
+    "react/react-in-jsx-scope": "off", // React 19 não precisa importar React
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
   },

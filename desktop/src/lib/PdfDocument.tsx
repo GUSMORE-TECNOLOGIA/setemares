@@ -60,6 +60,10 @@ const S = StyleSheet.create({
     width: 180,
     marginLeft: 16
   },
+  logo: {
+    height: 65,
+    width: 180
+  },
   headerTitle: { fontSize: 18, fontWeight: 700, marginBottom: 6, color: "#111827" },
   headerLocation: { fontSize: 12, color: "#374151", marginBottom: 8 },
   headerSeparator: { height: 1, backgroundColor: "#E5E7EB", marginBottom: 6 },

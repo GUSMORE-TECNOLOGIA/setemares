@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, Search, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { AlertTriangle, Search, Clock, CheckCircle } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';

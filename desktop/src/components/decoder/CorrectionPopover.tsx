@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, X, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { decoderV2Complete, OverrideData } from '../../lib/decoder-v2-complete';
 import { supabase } from '../../lib/supabase';
 
 interface CorrectionPopoverProps {

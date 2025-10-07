@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Plane, Globe, Edit2, Trash2, Plus } from 'lucide-react';
+import { Plane, Globe, Plus } from 'lucide-react';
 import { Table } from '@/components/ui/Table';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { Pagination } from '@/components/ui/Pagination';
 import { useAirlines, useSupabaseCRUD } from '@/hooks/useSupabase';
-import { airlineSchema, normalizeAirlineData, isValidIATA, isValidICAO } from '@/lib/validations/airline';
+import { airlineSchema } from '@/lib/validations/airline';
 import { z } from 'zod';
 import type { AirlineRow } from '@/types/db';
 

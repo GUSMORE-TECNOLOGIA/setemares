@@ -1,6 +1,6 @@
 // Gerador de PDF Profissional para Cotações de Aéreos
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 
 // Usar fontes padrão do sistema para evitar erros de DataView
 // Font.register({

@@ -14,6 +14,7 @@ export interface PricingResult {
   comissao: number;
   taxasExibidas: number;
   total: number;
+  numParcelas?: number;
 }
 
 // Função para arredondar para 2 casas decimais

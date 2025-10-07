@@ -12,7 +12,7 @@ export interface RobustAirportInfo {
   iataCode: string;
   description: string;
   found: boolean;
-  source: 'database' | 'cache' | 'not_found';
+  source: 'database' | 'cache' | 'not_found' | 'cache_fallback';
   error?: string;
 }
 

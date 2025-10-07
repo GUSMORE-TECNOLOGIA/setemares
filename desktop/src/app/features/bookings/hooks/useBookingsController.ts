@@ -1,14 +1,14 @@
 ﻿import { useCallback, useMemo, useState } from "react";
 import { parsePNR, decodeItinerary } from "@/lib/parser";
-import type { DecodedFlight, DecodedItinerary } from "@/lib/parser";
+import type { DecodedItinerary } from "@/lib/parser";
 import { computeTotals } from "@/lib/pricing";
 import type { PricingResult } from "@/lib/pricing";
 import { downloadMultiPdf } from "@/lib/downloadMultiPdf";
 import type { MultiStackedPdfData } from "@/lib/MultiStackedPdfDocument";
 import type { ParsedBaggage, ParsedEmail, ParsedFare, ParsedSegment } from "@/lib/types/email-parser";
-import { parseEmail } from "@/lib/email-parser";
 import { QuoteValidator } from "@/lib/validation";
 import { healthMonitor } from "@/lib/health-monitor";
+import { logger } from "@/lib/logger";
 import type {
   BookingControllerReturn,
   BookingDecodeError,
@@ -84,6 +84,7 @@ function buildSimpleSummary(parsed: Awaited<ReturnType<typeof parsePNR>>): Simpl
     paymentTerms: parsed.paymentTerms || 'Em ate 4x no cartao de credito. Taxas a vista.',
     baggage: parsed.baggage || 'Conforme regra da tarifa',
     notes: parsed.notes || '',
+    numParcelas: parsed.numParcelas,
     ravPercent: parsed.ravPercent,
     incentivoPercent: parsed.incentivoPercent
   };
@@ -301,7 +302,7 @@ async function decodeSegments(segments: ParsedSegment[], optionLabel?: string): 
 
   try {
     const decoded = await decodeItinerary(trechos);
-    flights.push(...toBookingFlights(decoded, optionLabel));
+    flights.push(...toBookingFlights(decoded || undefined, optionLabel));
   } catch (error) {
     errors.push({
       code: optionLabel ?? 'PNR',
@@ -534,20 +535,42 @@ export function useBookingsController(): BookingControllerReturn {
   }, []);
 
   const onExecute = useCallback(async () => {
-    if (!pnrText.trim()) {
-      alert('Cole um PNR primeiro no editor');
-      return;
-    }
+    const actionEnd = logger.actionStart('PNR Processing', { 
+      textLength: pnrText.length,
+      hasText: !!pnrText.trim()
+    }, 'BookingsController');
 
-    clearState();
+    try {
+      if (!pnrText.trim()) {
+        logger.warn('Tentativa de processar PNR vazio', {}, 'BookingsController');
+        alert('Cole um PNR primeiro no editor');
+        return;
+      }
 
-    const complex = isComplexPnr(pnrText);
-    setIsComplexPNR(complex);
+      clearState();
 
-    if (complex) {
-      await handleComplexPnr(pnrText);
-    } else {
-      await handleSimplePnr(pnrText);
+      const complex = isComplexPnr(pnrText);
+      setIsComplexPNR(complex);
+
+      logger.info(`Processando PNR ${complex ? 'complexo' : 'simples'}`, {
+        isComplex: complex,
+        textLength: pnrText.length
+      }, 'BookingsController');
+
+      if (complex) {
+        await handleComplexPnr(pnrText);
+      } else {
+        await handleSimplePnr(pnrText);
+      }
+
+      actionEnd();
+    } catch (error) {
+      logger.error('Erro ao processar PNR', error as Error, {
+        isComplex: isComplexPnr(pnrText),
+        textLength: pnrText.length
+      }, 'BookingsController');
+      actionEnd();
+      throw error;
     }
   }, [clearState, handleComplexPnr, handleSimplePnr, pnrText]);
 
@@ -667,25 +690,52 @@ export function useBookingsController(): BookingControllerReturn {
   }, [parsedOptions, pnrText, quoteFamily, quoteObservation]);
 
   const onGeneratePdf = useCallback(async () => {
-    if (!pnrText.trim()) {
-      alert('Cole um PNR primeiro no editor');
-      return;
-    }
+    const actionEnd = logger.actionStart('PDF Generation', {
+      isComplex: isComplexPnr(pnrText),
+      hasText: !!pnrText.trim()
+    }, 'BookingsController');
 
-    setIsGenerating(true);
     try {
-      if (isComplexPnr(pnrText)) {
+      if (!pnrText.trim()) {
+        logger.warn('Tentativa de gerar PDF sem PNR', {}, 'BookingsController');
+        alert('Cole um PNR primeiro no editor');
+        return;
+      }
+
+      setIsGenerating(true);
+      
+      const startTime = Date.now();
+      const isComplex = isComplexPnr(pnrText);
+      
+      logger.info(`Iniciando geração de PDF ${isComplex ? 'complexo' : 'simples'}`, {
+        isComplex,
+        textLength: pnrText.length
+      }, 'BookingsController');
+
+      if (isComplex) {
         await buildProfessionalPdf();
       } else {
         await buildSimplePdf();
       }
+
+      const duration = Date.now() - startTime;
+      logger.pdfGeneration({
+        type: isComplex ? 'complex' : 'simple',
+        pages: isComplex ? parsedOptions.length : 1,
+        size: 0 // TODO: Obter tamanho real do PDF
+      }, duration);
+
+      actionEnd();
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF', error as Error, {
+        isComplex: isComplexPnr(pnrText),
+        textLength: pnrText.length
+      }, 'BookingsController');
       alert('Erro ao gerar PDF. Veja o console para detalhes.');
     } finally {
       setIsGenerating(false);
     }
-  }, [buildProfessionalPdf, buildSimplePdf, pnrText]);
+  }, [buildProfessionalPdf, buildSimplePdf, pnrText, parsedOptions.length]);
 
   const openDetailsModal = useCallback(() => setShowDetailsModal(true), []);
   const closeDetailsModal = useCallback(() => setShowDetailsModal(false), []);
@@ -848,9 +898,13 @@ function buildSingleOptionMultiStackedData(
         ? `${segments[0].depAirport} -> ${segments[0].arrAirport}`
         : 'Cotacao Personalizada';
 
+  // Construir payment terms dinamicamente
+  const numParcelas = summary?.numParcelas || 4;
+  const defaultPaymentTerms = `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
+  
   const option: ExtendedParsedOption = {
     label: routeLabel,
-    paymentTerms: summary?.paymentTerms,
+    paymentTerms: summary?.paymentTerms || defaultPaymentTerms,
     notes: summary?.notes,
     segments,
     fares: faresForPdf,

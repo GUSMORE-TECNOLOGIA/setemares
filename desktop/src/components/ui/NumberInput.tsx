@@ -12,10 +12,14 @@ interface NumberInputProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  id?: string;
 }
 
 const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ className, label, error, helpText, type = 'decimal', value, onChange, ...props }, ref) => {
+  ({ className, label, error, helpText, type = 'decimal', value, onChange, id, ...props }, ref) => {
+    const inputId = id || `number-input-${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = error ? `${inputId}-error` : undefined;
+    const helpId = helpText && !error ? `${inputId}-help` : undefined;
     const getFormatProps = () => {
       switch (type) {
         case 'currency':
@@ -44,31 +48,48 @@ const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
     return (
       <div className="space-y-2">
         {label && (
-          <label className="text-xs text-slate-400 font-medium">
+          <label 
+            htmlFor={inputId}
+            className="form-label"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {label}
           </label>
         )}
         <NumericFormat
+          id={inputId}
           getInputRef={ref}
           className={cn(
-            "w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-slate-200 placeholder:text-slate-500",
-            "focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            error && "border-red-400 focus:ring-red-400/40",
+            "w-full h-10 rounded-lg px-3 text-sm transition-all duration-150",
+            "focus:outline-none focus:ring-2 focus:ring-brand/60",
+            "disabled:opacity-60 disabled:cursor-not-allowed",
+            "form-input",
+            error && "border-red-500 focus:ring-red-500/60 focus:border-red-500",
             className
           )}
+          style={{
+            backgroundColor: 'var(--surface-tertiary)',
+            borderColor: error ? '#EF4444' : 'var(--border-primary)',
+            color: 'var(--text-primary)'
+          }}
           value={value}
           onValueChange={(values) => {
             onChange?.(values.floatValue);
           }}
+          aria-describedby={errorId || helpId}
+          aria-invalid={error ? 'true' : 'false'}
           {...getFormatProps()}
           {...props}
         />
         {error && (
-          <p className="text-xs text-red-400">{error}</p>
+          <p id={errorId} className="text-sm text-red-400" role="alert" aria-live="polite">
+            {error}
+          </p>
         )}
         {helpText && !error && (
-          <p className="text-xs text-slate-500">{helpText}</p>
+          <p id={helpId} className="text-sm text-slate-400">
+            {helpText}
+          </p>
         )}
       </div>
     );

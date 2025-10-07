@@ -43,7 +43,7 @@ const S = StyleSheet.create({
     color: "#111827", 
     paddingTop: 28, 
     paddingHorizontal: 32, 
-    paddingBottom: 28, 
+    paddingBottom: 28, // Volta ao padrão - rodapé será posicionado corretamente
     fontSize: 12, 
     lineHeight: 1.35,
     fontFamily: "Helvetica"
@@ -68,6 +68,10 @@ const S = StyleSheet.create({
     height: 65,
     width: 180,
     marginLeft: 8
+  },
+  logo: {
+    height: 65,
+    width: 180
   },
   headerTitle: { fontSize: 18, fontWeight: 700, marginBottom: 4, color: "#111827" },
   headerClient: { 
@@ -320,9 +324,9 @@ const S = StyleSheet.create({
     borderRadius: 1
   },
   
-  // Disclaimer centralizado no final da página
+  // Rodapé normal (não fixo) - posicionado no final do conteúdo
   disclaimerContainer: {
-    marginTop: 16,
+    marginTop: 20,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB"
@@ -406,8 +410,8 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
             <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
           </View>
           <View style={S.headerLogo}>
-            {hasBuffer && data.header.logoSrc ? (
-              <Image src={data.header.logoSrc} style={S.headerLogo} />
+            {data.header.logoSrc ? (
+              <Image src={data.header.logoSrc} style={S.logo} />
             ) : null}
           </View>
         </View>
@@ -552,10 +556,18 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
             );
           });
         } else {
-          console.log(`🔍 Opção ${optionIndex + 1} tem ${option.flights.length} voos, renderizando em 1 página`);
-          // Caso normal: opção com 6 ou menos voos - uma página
-          return (
-            <Page key={optionIndex} size="A4" style={S.page}>
+          console.log(`🔍 Opção ${optionIndex + 1} tem ${option.flights.length} voos, renderizando com paginação inteligente`);
+          
+          // Verificar se precisa de página extra para observações
+          const hasObservations = data.metadata?.observation;
+          const needsExtraPage = hasObservations && isLastOption;
+          
+          if (needsExtraPage) {
+            console.log(`🔍 Criando página extra para observações + rodapé`);
+            // Criar duas páginas: uma para o conteúdo principal, outra para observações + rodapé
+            return [
+              // Página 1: Conteúdo principal (sem observações)
+              <Page key={`${optionIndex}-main`} size="A4" style={S.page}>
               {/* Cabeçalho Premium - apenas na primeira página */}
               {optionIndex === 0 && (
                 <View style={S.headerCard}>
@@ -569,8 +581,8 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                     <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
                   </View>
                   <View style={S.headerLogo}>
-                    {hasBuffer && data.header.logoSrc ? (
-                      <Image src={data.header.logoSrc} style={S.headerLogo} />
+                  {data.header.logoSrc ? (
+                    <Image src={data.header.logoSrc} style={S.logo} />
                     ) : null}
                   </View>
                 </View>
@@ -657,7 +669,177 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                   </View>
                 )}
 
-                {/* Informações da cota e7 e3o - renderizar apenas na  faltima op e7 e3o */}
+                {/* Informações da cotação - renderizar apenas na última opção */}
+                {isLastOption && (
+                  <View style={S.quoteInfoCard}>
+                    <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA COTAÇÃO</Text>
+                    
+                    <View style={S.quoteInfoGrid}>
+                      <View style={S.quoteInfoItem}>
+                        <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
+                        <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
+                      </View>
+                      
+                      <View style={S.quoteInfoItem}>
+                        <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
+                        <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
+                      </View>
+                      
+                      <View style={S.quoteInfoItem}>
+                        <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
+                        <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
+                      </View>
+                      
+                      <View style={S.quoteInfoItem}>
+                        <Text style={S.quoteInfoLabel}>Reembolso</Text>
+                        <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
+                      </View>
+                    </View>
+                    
+                    {/* Observação NÃO incluída na primeira página quando há página extra */}
+                  </View>
+                )}
+
+                {/* Rodapé NÃO incluído na primeira página quando há página extra */}
+              </View>
+            </Page>,
+            
+            // Página 2: Observações + Rodapé
+            <Page key={`${optionIndex}-footer`} size="A4" style={S.page}>
+              <View>
+                {/* Observação */}
+                {data.metadata?.observation && (
+                  <View style={S.quoteInfoObservation}>
+                    <Text style={S.quoteInfoObservationLabel}>Observação</Text>
+                    <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
+                  </View>
+                )}
+                
+                {/* Rodapé no final da página */}
+                <View style={S.disclaimerContainer}>
+                  <Text style={S.footerDisclaimer}>
+                    Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
+                  </Text>
+                  
+                  {/* Separador */}
+                  <View style={S.footerSeparator} />
+                  
+                  {/* Rodapé - 3 linhas alinhadas à direita */}
+                  <View style={S.footerContact}>
+                    <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
+                    <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
+                    <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
+                  </View>
+                </View>
+              </View>
+            </Page>
+          ];
+          } else {
+            // Caso normal: tudo em uma página
+            return (
+              <Page key={optionIndex} size="A4" style={S.page}>
+                {/* Cabeçalho Premium - apenas na primeira página */}
+                {optionIndex === 0 && (
+                  <View style={S.headerCard}>
+                    <View style={S.headerContent}>
+                      <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
+                      <Text style={S.headerClient}>
+                        Cliente: {data.metadata?.family || 'A definir'}
+                      </Text>
+                      <View style={S.headerSeparator} />
+                      <Text style={S.headerSubtitle}>Melhor valor com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
+                      <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
+                    </View>
+                    <View style={S.headerLogo}>
+                      {data.header.logoSrc ? (
+                        <Image src={data.header.logoSrc} style={S.logo} />
+                      ) : null}
+                    </View>
+                  </View>
+                )}
+
+                {/* Renderizar a opção atual */}
+                <View>
+                  {/* Título da opção */}
+                  <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>
+
+                  {/* Tabela de voos */}
+                  <View style={S.tableCard}>
+                    {/* Cabeçalho da tabela */}
+                    <View style={S.tableHeader}>
+                      <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
+                      <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
+                      <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
+                      <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
+                      <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+                    </View>
+                    
+                    {/* Linhas de voos */}
+                    {option.flights.map((flight, i) => (
+                      <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
+                        <View style={S.col1}>
+                          <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
+                            {flight.flightCode.split(' ')[0]}
+                          </Text>
+                          <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
+                            {flight.flightCode.split(' ').slice(1).join(' ')}
+                          </Text>
+                        </View>
+                        <View style={S.col2}>
+                          <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                            {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
+                          </Text>
+                          <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                            {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                          </Text>
+                        </View>
+                        <View style={S.col3}>
+                          <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                            {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
+                          </Text>
+                          <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                            {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                          </Text>
+                        </View>
+                        <View style={S.col4}>
+                          <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                            {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
+                          </Text>
+                          <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                            {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
+                          </Text>
+                        </View>
+                        <View style={S.col5}>
+                          <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                            {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
+                          </Text>
+                          <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                            {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Valores por cabine */}
+                  {option.fareDetails && option.fareDetails.length > 0 && (
+                    <View style={S.fareDetailsCard}>
+                      <Text style={S.fareDetailsTitle}>VALORES POR CABINE</Text>
+                      {option.fareDetails.map((fare, fareIndex) => (
+                        <View key={fareIndex} style={S.fareRow} wrap={false}>
+                          <View style={S.fareInfo}>
+                            <Text style={S.fareClassLabel}>{fare.classLabel}</Text>
+                            <Text style={S.fareBreakdown}>
+                              Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}
+                            </Text>
+                          </View>
+                          <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Informações da cotação - renderizar apenas na última opção */}
                 {isLastOption && (
                   <View style={S.quoteInfoCard}>
                     <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA COTAÇÃO</Text>
@@ -694,7 +876,7 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                   </View>
                 )}
 
-                {/* Disclaimer centralizado no final da página - APENAS NA ÚLTIMA OPÇÃO */}
+                  {/* Rodapé no final da página - APENAS NA ÚLTIMA OPÇÃO */}
                 {isLastOption && (
         <View style={S.disclaimerContainer}>
           <Text style={S.footerDisclaimer}>
@@ -715,6 +897,7 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
         </View>
       </Page>
           );
+          }
         }
       })}
     </Document>

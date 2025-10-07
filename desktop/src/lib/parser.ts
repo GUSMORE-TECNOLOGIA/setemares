@@ -22,6 +22,7 @@ export interface ParsedPNR {
   paymentTerms?: string;
   baggage?: string;
   notes?: string;
+  numParcelas?: number; // Número de parcelas detectado no PNR
   ravPercent?: number; // Percentual de RAV detectado no PNR
   incentivoPercent?: number; // Percentual de Incentivo detectado no PNR
 }
@@ -239,8 +240,14 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const parcelaMatch = pnrText.match(/\bparcela\s+\d+x\b/i)?.[0]?.trim() || pnrText.match(/\bparcelado\s+em\s+\d+x\b/i)?.[0]?.trim();
   const combinedPayment = [netNet, parcelaMatch].filter(Boolean).join(' - ');
   const paymentTerms = pagtoLine || (combinedPayment || (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.'));
-  const baggage = pnrText.match(/(\d+pc\s+\d+kg\s*(?:\/\s*[a-z]{3})?)/i)?.[1]?.trim() || 'Conforme regra da tarifa';
+  // Parsing melhorado de bagagem: 2pc 32kg/exe-pri, 1pc 23kg, etc.
+  const baggageMatch = pnrText.match(/(\d+pc\s+\d+kg(?:\/[a-z\-]+)*)/i);
+  const baggage = baggageMatch?.[1]?.trim() || 'Conforme regra da tarifa';
   const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
+  
+  // Detectar número de parcelas - formato: "pagto 10x" ou "parcela 4x"
+  const parcelasMatch = pnrText.match(/(?:pagto|parcela(?:do)?)\s+(\d+)x/i);
+  const numParcelas = parcelasMatch ? parseInt(parcelasMatch[1]) : undefined;
   
   // Detectar percentual de RAV - formato: "du 7%"
   const ravMatch = pnrText.match(/du\s+(\d+)%/i);
@@ -288,6 +295,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     paymentTerms,
     baggage,
     notes,
+    numParcelas,
     ravPercent,
     incentivoPercent,
   };
@@ -305,7 +313,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     // Exemplo: "1 AA 950 12FEB  GRUJFK SS2  2235  0615   13FEB" (novo formato)
     
     // Remover número de linha no início (ex: "1 AA" -> "AA")
-    let cleanedTrecho = trecho.replace(/^\d+\s+/, '');
+    const cleanedTrecho = trecho.replace(/^\d+\s+/, '');
     
     const parts = cleanedTrecho.trim().split(/\s+/);
     console.log('🔍 Trecho original:', trecho);
@@ -393,7 +401,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     };
   }));
   
-  const flights = flightsResults.filter((flight): flight is DecodedFlight => flight !== null);
+  const flights = flightsResults.filter((flight) => flight !== null) as DecodedFlight[];
   
   return {
     source: 'internal-parser',

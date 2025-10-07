@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, XCircle, Wrench, RefreshCw, FileText, X } from 'lucide-react';
+import { CheckCircle, XCircle, Wrench, RefreshCw, FileText } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { CodeCorrectionModal } from './CodeCorrectionModal';
 import { CorrectionPopover } from './CorrectionPopover';
 import ModalDetalhesDecodificacao, { DecodedSegment } from '../ModalDetalhesDecodificacao';

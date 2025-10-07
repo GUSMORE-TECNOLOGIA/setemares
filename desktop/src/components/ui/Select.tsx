@@ -6,39 +6,61 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   helpText?: string;
   options: { value: string; label: string }[];
+  id?: string;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, helpText, options, ...props }, ref) => {
+  ({ className, label, error, helpText, options, id, ...props }, ref) => {
+    const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = error ? `${selectId}-error` : undefined;
+    const helpId = helpText && !error ? `${selectId}-help` : undefined;
+
     return (
       <div className="space-y-2">
         {label && (
-          <label className="text-xs text-slate-400 font-medium">
+          <label 
+            htmlFor={selectId}
+            className="form-label"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {label}
           </label>
         )}
         <select
+          id={selectId}
           className={cn(
-            "w-full h-10 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-slate-200",
-            "focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/40",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            error && "border-red-400 focus:ring-red-400/40",
+            "w-full h-10 rounded-lg px-3 text-sm transition-all duration-150",
+            "focus:outline-none focus:ring-2 focus:ring-brand/60",
+            "disabled:opacity-60 disabled:cursor-not-allowed",
+            "form-input",
+            error && "border-red-500 focus:ring-red-500/60 focus:border-red-500",
             className
           )}
+          style={{
+            backgroundColor: 'var(--surface-tertiary)',
+            borderColor: error ? '#EF4444' : 'var(--border-primary)',
+            color: 'var(--text-primary)'
+          }}
           ref={ref}
+          aria-describedby={errorId || helpId}
+          aria-invalid={error ? 'true' : 'false'}
           {...props}
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value} className="bg-slate-800">
+            <option key={option.value} value={option.value} className="bg-slate-900 text-slate-100">
               {option.label}
             </option>
           ))}
         </select>
         {error && (
-          <p className="text-xs text-red-400">{error}</p>
+          <p id={errorId} className="text-sm text-red-400" role="alert" aria-live="polite">
+            {error}
+          </p>
         )}
         {helpText && !error && (
-          <p className="text-xs text-slate-500">{helpText}</p>
+          <p id={helpId} className="text-sm text-slate-400">
+            {helpText}
+          </p>
         )}
       </div>
     );

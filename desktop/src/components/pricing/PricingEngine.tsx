@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, DollarSign, Percent, Plus } from 'lucide-react';
-import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { computeTotals, formatCurrency, formatPercent, validatePricingParams, PricingParams, PricingResult } from '../../lib/pricing';
 
