@@ -1,10 +1,21 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "cd desktop && npm install && npm run build",
   "outputDirectory": "desktop/dist",
   "framework": "vite",
-  "installCommand": "npm install",
+  "installCommand": "npm install && cd desktop && npm install",
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs20.x",
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
