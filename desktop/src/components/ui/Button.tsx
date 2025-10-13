@@ -18,6 +18,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     children, 
     ...props 
   }, ref) => {
+    // Remover props que não devem ser passadas para o DOM
+    const { loading: _, ...domProps } = { loading, ...props };
     const baseClasses = "btn";
     
     const variantClasses = {
@@ -46,7 +48,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         aria-disabled={disabled || loading}
-        {...props}
+        {...domProps}
       >
         {loading && (
           <svg 

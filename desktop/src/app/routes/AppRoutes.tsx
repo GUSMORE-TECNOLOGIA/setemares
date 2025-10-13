@@ -1,6 +1,7 @@
 import { CatalogPage } from "@/components/catalog/CatalogPage";
 import { UnknownCodesPage } from "@/components/decoder/UnknownCodesPage";
 import { BookingsPage } from "../features/bookings/pages/BookingsPage";
+import { ConciergePage } from "../features/concierge/pages/ConciergePage";
 import { useAppState } from "../shared/hooks/useAppState";
 
 export function AppRoutes() {
@@ -12,6 +13,10 @@ export function AppRoutes() {
 
   if (currentPage === 'unknown-codes') {
     return <UnknownCodesPage />;
+  }
+
+  if (currentPage === 'concierge') {
+    return <ConciergePage />;
   }
 
   return <BookingsPage />;

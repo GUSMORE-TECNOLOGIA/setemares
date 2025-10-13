@@ -1,0 +1,43 @@
+{
+  "US": {
+    "country": "Estados Unidos",
+    "embassy": {
+      "name": "Embaixada do Brasil em Washington, D.C.",
+      "address": "3006 Massachusetts Ave NW, Washington, DC 20008",
+      "phone": "+1 (202) 238-2700",
+      "website": "https://www.gov.br/mre/pt-br/embaixada-washington"
+    },
+    "consulates": [
+      {
+        "city": "New York",
+        "address": "225 E 41st St, New York, NY 10017",
+        "phone": "+1 (917) 777-7777",
+        "website": "https://www.gov.br/mre/pt-br/consulado-nova-york"
+      },
+      {
+        "city": "Miami",
+        "address": "3150 SW 38th Ave, Miami, FL 33146",
+        "phone": "+1 (305) 285-6200",
+        "website": "https://www.gov.br/mre/pt-br/consulado-miami"
+      }
+    ]
+  },
+  "FR": {
+    "country": "França",
+    "embassy": {
+      "name": "Embaixada do Brasil em Paris",
+      "address": "34 Cours Albert 1er, 75008 Paris",
+      "phone": "+33 1 45 61 63 00",
+      "website": "https://www.gov.br/mre/pt-br/embaixada-paris"
+    },
+    "consulates": [
+      {
+        "city": "Paris",
+        "address": "6 Rue Georges Berger, 75017 Paris",
+        "phone": "+33 1 56 33 33 00",
+        "website": "https://www.gov.br/mre/pt-br/consulado-paris"
+      }
+    ]
+  }
+}
+

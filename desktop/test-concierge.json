@@ -1,0 +1,12 @@
+{
+  "clientName": "João Silva",
+  "destination": "Paris, França",
+  "checkin": "2025-01-15",
+  "checkout": "2025-01-20",
+  "travelType": "familia",
+  "budget": "confortavel",
+  "adults": 2,
+  "children": 1,
+  "interests": ["historia", "gastronomia"],
+  "observations": "Cliente tem restrições alimentares"
+}

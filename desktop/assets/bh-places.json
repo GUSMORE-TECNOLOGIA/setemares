@@ -1,0 +1,396 @@
+{
+  "restaurants": [
+    {
+      "name": "Xapuri",
+      "address": "Rua Mandacaru, 260 - Pampulha",
+      "cuisine": "Comida mineira contemporânea",
+      "signature_dish": "Tutu à mineira com costelinha",
+      "chef": "Chef Edinho Engel",
+      "price_range": "R$ 80-150",
+      "rating": 4.7,
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Cantina do Lucas",
+      "address": "Rua Gonçalves Dias, 874 - Savassi",
+      "cuisine": "Comida italiana autêntica",
+      "signature_dish": "Risotto de funghi porcini",
+      "chef": "Chef Lucas Corazza",
+      "price_range": "R$ 120-200",
+      "rating": 4.6,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Mercado Central",
+      "address": "Av. Augusto de Lima, 744 - Centro",
+      "cuisine": "Comida tradicional mineira",
+      "signature_dish": "Feijão tropeiro e torresmo",
+      "chef": "Tradicional",
+      "price_range": "R$ 30-60",
+      "rating": 4.5,
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Restaurante Glouton",
+      "address": "Rua Pernambuco, 1479 - Savassi",
+      "cuisine": "Alta gastronomia francesa",
+      "signature_dish": "Boeuf bourguignon com purê de batata trufado",
+      "chef": "Chef Claude Troisgros",
+      "price_range": "R$ 200-350",
+      "rating": 4.8,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Bar do Seu Estrelo",
+      "address": "Rua Curitiba, 2105 - Lourdes",
+      "cuisine": "Bar e petiscos",
+      "signature_dish": "Bolinhos de feijoada e chopp Devassa",
+      "chef": "Tradicional",
+      "price_range": "R$ 40-80",
+      "rating": 4.4,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Olegário",
+      "address": "Rua Olegário Maciel, 1746 - Lourdes",
+      "cuisine": "Comida mineira contemporânea",
+      "signature_dish": "Frango com quiabo moderno",
+      "chef": "Chef Ana Luiza Trajano",
+      "price_range": "R$ 90-160",
+      "rating": 4.5,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Sushi Yama",
+      "address": "Rua Pernambuco, 1120 - Funcionários",
+      "cuisine": "Sushi e culinária japonesa",
+      "signature_dish": "Sashimi de salmão fresco e temaki especial",
+      "chef": "Chef Yama-san",
+      "price_range": "R$ 100-180",
+      "rating": 4.6,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Paladino",
+      "address": "Rua Gonçalves Dias, 1580 - Savassi",
+      "cuisine": "Comida italiana",
+      "signature_dish": "Pizza margherita com mozzarella de búfala",
+      "chef": "Chef Giuseppe Paladino",
+      "price_range": "R$ 60-120",
+      "rating": 4.3,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Café com Letras",
+      "address": "Rua Antônio de Albuquerque, 781 - Savassi",
+      "cuisine": "Café e brunch",
+      "signature_dish": "Waffle belga com frutas vermelhas",
+      "chef": "Especialista em café",
+      "price_range": "R$ 25-55",
+      "rating": 4.4,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Amadeus",
+      "address": "Rua Pernambuco, 1654 - Savassi",
+      "cuisine": "Alta gastronomia internacional",
+      "signature_dish": "Salmão grelhado com molho de maracujá",
+      "chef": "Chef Amadeus Rocha",
+      "price_range": "R$ 150-250",
+      "rating": 4.7,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Dona Lucinha",
+      "address": "Rua Sergipe, 1255 - Funcionários",
+      "cuisine": "Comida mineira tradicional",
+      "signature_dish": "Frango com quiabo e angu",
+      "chef": "Dona Lucinha (família)",
+      "price_range": "R$ 50-90",
+      "rating": 4.5,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Vecchio Sogno",
+      "address": "Rua Pernambuco, 1601 - Savassi",
+      "cuisine": "Culinária italiana sofisticada",
+      "signature_dish": "Ravioli de queijo com molho de tomate fresco",
+      "chef": "Chef italiano",
+      "price_range": "R$ 120-200",
+      "rating": 4.6,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Pampulha",
+      "address": "Av. Otacílio Negrão de Lima, 16585 - Pampulha",
+      "cuisine": "Frutos do mar e culinária regional",
+      "signature_dish": "Moqueca de peixe com pirão de aipim",
+      "chef": "Especialista em frutos do mar",
+      "price_range": "R$ 80-140",
+      "rating": 4.4,
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Restaurante Porcão",
+      "address": "Rua Pernambuco, 1488 - Savassi",
+      "cuisine": "Churrascaria premium",
+      "signature_dish": "Picanha na brasa com farofa de banana",
+      "chef": "Especialista em carnes",
+      "price_range": "R$ 100-180",
+      "rating": 4.5,
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Restaurante Café com Letras",
+      "address": "Rua Antônio de Albuquerque, 781 - Savassi",
+      "cuisine": "Café especializado e brunch",
+      "signature_dish": "Avocado toast com salmão defumado",
+      "chef": "Barista especializado",
+      "price_range": "R$ 30-65",
+      "rating": 4.3,
+      "coordinates": [-19.9364, -43.9352]
+    }
+  ],
+  "nightlife": [
+    {
+      "name": "Bar do Seu Estrelo",
+      "type": "Bar tradicional",
+      "address": "Rua Curitiba, 2105 - Lourdes",
+      "specialty": "Chopp Devassa e bolinhos de feijoada",
+      "vibe": "Descontraído, autêntico",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Savassi Pub",
+      "type": "Pub irlandês",
+      "address": "Rua Pernambuco, 1580 - Savassi",
+      "specialty": "Cervejas artesanais e hambúrgueres",
+      "vibe": "Jovem, descontraído",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Bar do Armando",
+      "type": "Bar boêmio",
+      "address": "Rua Guajajaras, 1400 - Centro",
+      "specialty": "Caipirinhas artesanais e música ao vivo",
+      "vibe": "Boêmio, cultural",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Club 6",
+      "type": "Balada eletrônica",
+      "address": "Av. do Contorno, 4852 - Funcionários",
+      "specialty": "DJs nacionais e internacionais",
+      "vibe": "Eletrônico, moderno",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Bar do João",
+      "type": "Bar tradicional",
+      "address": "Rua Gonçalves Dias, 1456 - Savassi",
+      "specialty": "Chopp gelado e petiscos mineiros",
+      "vibe": "Tradicional, familiar",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Lounge 104",
+      "type": "Lounge sofisticado",
+      "address": "Rua Pernambuco, 104 - Savassi",
+      "specialty": "Coquetéis premium e ambiente intimista",
+      "vibe": "Sofisticado, romântico",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Bar do Beto",
+      "type": "Bar de rock",
+      "address": "Rua Sergipe, 1125 - Funcionários",
+      "specialty": "Rock ao vivo e cervejas especiais",
+      "vibe": "Rock, alternativo",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Casa Club",
+      "type": "Balada",
+      "address": "Rua Curitiba, 2200 - Lourdes",
+      "specialty": "Funk, sertanejo e pop",
+      "vibe": "Popular, dançante",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Bar do Chico",
+      "type": "Bar cultural",
+      "address": "Rua Guajajaras, 1200 - Centro",
+      "specialty": "Samba e MPB ao vivo",
+      "vibe": "Cultural, tradicional",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Sky Lounge",
+      "type": "Rooftop bar",
+      "address": "Av. Afonso Pena, 4000 - Centro",
+      "specialty": "Vista panorâmica e coquetéis premium",
+      "vibe": "Elegante, vista privilegiada",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Bar do Neto",
+      "type": "Bar esportivo",
+      "address": "Rua Pernambuco, 1700 - Savassi",
+      "specialty": "Jogos ao vivo e petiscos",
+      "vibe": "Esportivo, descontraído",
+      "coordinates": [-19.9364, -43.9352]
+    }
+  ],
+  "attractions": [
+    {
+      "name": "Conjunto Arquitetônico da Pampulha",
+      "type": "Patrimônio UNESCO",
+      "address": "Orla da Lagoa da Pampulha",
+      "description": "Obras de Oscar Niemeyer com painéis de Portinari",
+      "visit_duration": "3-4 horas",
+      "best_time": "Manhã ou final de tarde",
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Mercado Central",
+      "type": "Mercado tradicional",
+      "address": "Av. Augusto de Lima, 744 - Centro",
+      "description": "Mais de 400 lojas com produtos típicos mineiros",
+      "visit_duration": "2-3 horas",
+      "best_time": "Manhã (menos movimento)",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Praça da Liberdade",
+      "type": "Complexo cultural",
+      "address": "Praça da Liberdade - Savassi",
+      "description": "Espaços culturais e arquitetura eclética",
+      "visit_duration": "2-3 horas",
+      "best_time": "Qualquer horário",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Museu de Arte da Pampulha",
+      "type": "Museu de arte",
+      "address": "Av. Otacílio Negrão de Lima, 16585 - Pampulha",
+      "description": "Arte moderna e contemporânea brasileira",
+      "visit_duration": "1-2 horas",
+      "best_time": "Terça a domingo, 9h-18h",
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Parque Municipal",
+      "type": "Parque urbano",
+      "address": "Av. Afonso Pena, 1377 - Centro",
+      "description": "O primeiro parque de BH com lago e vegetação",
+      "visit_duration": "1-2 horas",
+      "best_time": "Manhã ou final de tarde",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Igreja São Francisco de Assis",
+      "type": "Igreja histórica",
+      "address": "Av. Otacílio Negrão de Lima, 3000 - Pampulha",
+      "description": "Capela projetada por Oscar Niemeyer",
+      "visit_duration": "30 minutos",
+      "best_time": "Qualquer horário",
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Mirante do Mangabeiras",
+      "type": "Mirante",
+      "address": "Rua Pedro José Pardo - Mangabeiras",
+      "description": "Vista panorâmica de toda a cidade",
+      "visit_duration": "1 hora",
+      "best_time": "Final de tarde (pôr do sol)",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Museu Inimá de Paula",
+      "type": "Museu de arte",
+      "address": "Rua da Bahia, 1201 - Centro",
+      "description": "Acervo do pintor Inimá de Paula",
+      "visit_duration": "1-2 horas",
+      "best_time": "Terça a domingo, 10h-17h",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Feira Hippie",
+      "type": "Feira de artesanato",
+      "address": "Praça da Liberdade - Savassi",
+      "description": "Maior feira de artesanato da América Latina",
+      "visit_duration": "2-4 horas",
+      "best_time": "Domingos, 8h-14h",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Casa do Baile",
+      "type": "Centro cultural",
+      "address": "Av. Otacílio Negrão de Lima, 751 - Pampulha",
+      "description": "Centro de referência em arquitetura e urbanismo",
+      "visit_duration": "1-2 horas",
+      "best_time": "Terça a domingo, 9h-18h",
+      "coordinates": [-19.8514, -43.9647]
+    },
+    {
+      "name": "Memorial Minas Gerais Vale",
+      "type": "Museu interativo",
+      "address": "Praça da Liberdade, s/n - Savassi",
+      "description": "História e cultura de Minas Gerais",
+      "visit_duration": "2-3 horas",
+      "best_time": "Terça a domingo, 10h-17h30",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Igreja de São José",
+      "type": "Igreja barroca",
+      "address": "Rua da Bahia, 1352 - Centro",
+      "description": "Igreja barroca do século XVIII",
+      "visit_duration": "30 minutos",
+      "best_time": "Qualquer horário",
+      "coordinates": [-19.9167, -43.9345]
+    }
+  ],
+  "shopping": [
+    {
+      "name": "Mercado Central",
+      "type": "Mercado tradicional",
+      "address": "Av. Augusto de Lima, 744 - Centro",
+      "specialty": "Queijos, cachaças artesanais, doces mineiros",
+      "must_buy": "Queijo canastra, goiabada cascão, cachaça artesanal",
+      "coordinates": [-19.9167, -43.9345]
+    },
+    {
+      "name": "Shopping Diamond Mall",
+      "type": "Shopping center",
+      "address": "Av. Olegário Maciel, 1600 - Lourdes",
+      "specialty": "Marcas internacionais e nacionais",
+      "must_buy": "Roupas, calçados, eletrônicos",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Savassi Shopping",
+      "type": "Shopping center",
+      "address": "Rua Pernambuco, 1628 - Savassi",
+      "specialty": "Lojas especializadas e boutiques",
+      "must_buy": "Acessórios, perfumes, presentes",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Feira Hippie",
+      "type": "Feira de artesanato",
+      "address": "Praça da Liberdade - Savassi",
+      "specialty": "Artesanato mineiro e produtos únicos",
+      "must_buy": "Cerâmica, pedra-sabão, bordados",
+      "coordinates": [-19.9364, -43.9352]
+    },
+    {
+      "name": "Shopping Pátio Savassi",
+      "type": "Shopping center",
+      "address": "Av. do Contorno, 6061 - Savassi",
+      "specialty": "Lojas de departamento e restaurantes",
+      "must_buy": "Roupas, livros, cosméticos",
+      "coordinates": [-19.9364, -43.9352]
+    }
+  ]
+}

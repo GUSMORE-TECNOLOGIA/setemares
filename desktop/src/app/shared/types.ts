@@ -2,7 +2,7 @@ import type { ParsedBaggage, ParsedFare, ParsedOption, ParsedSegment } from '@/l
 import type { DecodedFlight, DecodedItinerary } from '@/lib/parser';
 import type { PricingResult } from '@/lib/pricing';
 
-export type PageKey = 'home' | 'catalog' | 'unknown-codes';
+export type PageKey = 'home' | 'catalog' | 'unknown-codes' | 'concierge';
 export type SupabaseStatus = 'testing' | 'connected' | 'error';
 
 export interface BookingDecodeError {

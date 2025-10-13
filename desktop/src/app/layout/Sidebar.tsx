@@ -1,4 +1,4 @@
-import { AlertTriangle, BarChart3, Database, FileText, Home, Settings } from "lucide-react";
+import { AlertTriangle, BarChart3, Database, Sparkles, Home, Settings } from "lucide-react";
 import { useAppState } from "../shared/hooks/useAppState";
 
 export function Sidebar() {
@@ -16,9 +16,12 @@ export function Sidebar() {
             <Home size={18} />
             <span>Decodificar</span>
           </button>
-          <button className="sidebar-item" type="button">
-            <FileText size={18} />
-            <span>Cotações</span>
+          <button
+            className={`sidebar-item ${currentPage === 'concierge' ? 'sidebar-item-active' : ''}`}
+            onClick={() => navigate('concierge')}
+          >
+            <Sparkles size={18} />
+            <span>Concierge</span>
           </button>
           <button
             className={`sidebar-item ${currentPage === 'catalog' ? 'sidebar-item-active' : ''}`}

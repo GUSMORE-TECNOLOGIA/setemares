@@ -1,0 +1,64 @@
+[
+  {
+    "name": "Viagem de Lua de Mel - Paris",
+    "data": {
+      "clientName": "Maria e João Santos",
+      "destination": "Paris, França",
+      "checkin": "2025-02-14",
+      "checkout": "2025-02-20",
+      "travelType": "lua_de_mel",
+      "budget": "luxo",
+      "adults": 2,
+      "children": 0,
+      "hotel": "Hotel Ritz Paris",
+      "interests": ["gastronomia", "arte", "historia"],
+      "observations": "Aniversário de casamento, preferem restaurantes românticos"
+    }
+  },
+  {
+    "name": "Viagem em Família - Orlando",
+    "data": {
+      "clientName": "Família Silva",
+      "destination": "Orlando, Estados Unidos",
+      "checkin": "2025-07-15",
+      "checkout": "2025-07-25",
+      "travelType": "familia",
+      "budget": "confortavel",
+      "adults": 2,
+      "children": 2,
+      "hotel": "Disney's Grand Floridian Resort",
+      "interests": ["aventura", "festivais"],
+      "observations": "Crianças de 8 e 12 anos, primeira viagem internacional"
+    }
+  },
+  {
+    "name": "Viagem de Negócios - Tóquio",
+    "data": {
+      "clientName": "Carlos Oliveira",
+      "destination": "Tóquio, Japão",
+      "checkin": "2025-03-10",
+      "checkout": "2025-03-15",
+      "travelType": "negocios",
+      "budget": "premium",
+      "adults": 1,
+      "children": 0,
+      "interests": ["gastronomia", "cultura"],
+      "observations": "Reuniões corporativas, precisa de transporte eficiente"
+    }
+  },
+  {
+    "name": "Viagem de Aventura - Nova Zelândia",
+    "data": {
+      "clientName": "Ana e Pedro Costa",
+      "destination": "Queenstown, Nova Zelândia",
+      "checkin": "2025-12-01",
+      "checkout": "2025-12-15",
+      "travelType": "aventura",
+      "budget": "confortavel",
+      "adults": 2,
+      "children": 0,
+      "interests": ["aventura", "natureza", "fotografia"],
+      "observations": "Interessados em esportes radicais e paisagens naturais"
+    }
+  }
+]

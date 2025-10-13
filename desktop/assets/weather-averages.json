@@ -1,0 +1,44 @@
+{
+  "Belo Horizonte": {
+    "1": { "month": "Janeiro", "temp_min": 18, "temp_max": 28, "condition": "Chuvoso", "precipitation": "Alta" },
+    "2": { "month": "Fevereiro", "temp_min": 18, "temp_max": 29, "condition": "Chuvoso", "precipitation": "Alta" },
+    "3": { "month": "Março", "temp_min": 17, "temp_max": 28, "condition": "Chuvoso", "precipitation": "Média" },
+    "4": { "month": "Abril", "temp_min": 15, "temp_max": 27, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "5": { "month": "Maio", "temp_min": 13, "temp_max": 25, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "6": { "month": "Junho", "temp_min": 11, "temp_max": 24, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "7": { "month": "Julho", "temp_min": 11, "temp_max": 25, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "8": { "month": "Agosto", "temp_min": 13, "temp_max": 27, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "9": { "month": "Setembro", "temp_min": 15, "temp_max": 28, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "10": { "month": "Outubro", "temp_min": 17, "temp_max": 29, "condition": "Parcialmente nublado", "precipitation": "Média" },
+    "11": { "month": "Novembro", "temp_min": 18, "temp_max": 28, "condition": "Chuvoso", "precipitation": "Alta" },
+    "12": { "month": "Dezembro", "temp_min": 18, "temp_max": 28, "condition": "Chuvoso", "precipitation": "Alta" }
+  },
+  "São Paulo": {
+    "1": { "month": "Janeiro", "temp_min": 19, "temp_max": 27, "condition": "Chuvoso", "precipitation": "Alta" },
+    "2": { "month": "Fevereiro", "temp_min": 19, "temp_max": 28, "condition": "Chuvoso", "precipitation": "Alta" },
+    "3": { "month": "Março", "temp_min": 18, "temp_max": 27, "condition": "Chuvoso", "precipitation": "Média" },
+    "4": { "month": "Abril", "temp_min": 16, "temp_max": 26, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "5": { "month": "Maio", "temp_min": 14, "temp_max": 24, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "6": { "month": "Junho", "temp_min": 12, "temp_max": 23, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "7": { "month": "Julho", "temp_min": 12, "temp_max": 24, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "8": { "month": "Agosto", "temp_min": 14, "temp_max": 26, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "9": { "month": "Setembro", "temp_min": 16, "temp_max": 27, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "10": { "month": "Outubro", "temp_min": 17, "temp_max": 28, "condition": "Parcialmente nublado", "precipitation": "Média" },
+    "11": { "month": "Novembro", "temp_min": 18, "temp_max": 27, "condition": "Chuvoso", "precipitation": "Alta" },
+    "12": { "month": "Dezembro", "temp_min": 19, "temp_max": 27, "condition": "Chuvoso", "precipitation": "Alta" }
+  },
+  "Rio de Janeiro": {
+    "1": { "month": "Janeiro", "temp_min": 23, "temp_max": 30, "condition": "Chuvoso", "precipitation": "Alta" },
+    "2": { "month": "Fevereiro", "temp_min": 24, "temp_max": 31, "condition": "Chuvoso", "precipitation": "Alta" },
+    "3": { "month": "Março", "temp_min": 23, "temp_max": 30, "condition": "Chuvoso", "precipitation": "Média" },
+    "4": { "month": "Abril", "temp_min": 21, "temp_max": 28, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "5": { "month": "Maio", "temp_min": 19, "temp_max": 26, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "6": { "month": "Junho", "temp_min": 18, "temp_max": 25, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "7": { "month": "Julho", "temp_min": 17, "temp_max": 25, "condition": "Ensolarado", "precipitation": "Muito baixa" },
+    "8": { "month": "Agosto", "temp_min": 18, "temp_max": 26, "condition": "Ensolarado", "precipitation": "Baixa" },
+    "9": { "month": "Setembro", "temp_min": 19, "temp_max": 27, "condition": "Parcialmente nublado", "precipitation": "Baixa" },
+    "10": { "month": "Outubro", "temp_min": 21, "temp_max": 28, "condition": "Parcialmente nublado", "precipitation": "Média" },
+    "11": { "month": "Novembro", "temp_min": 22, "temp_max": 29, "condition": "Chuvoso", "precipitation": "Alta" },
+    "12": { "month": "Dezembro", "temp_min": 23, "temp_max": 30, "condition": "Chuvoso", "precipitation": "Alta" }
+  }
+}

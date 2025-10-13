@@ -24,6 +24,15 @@ export default defineConfig(({ mode }) => {
 			'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
 			'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
 		},
+		server: {
+			proxy: {
+				'/api': {
+					target: 'http://localhost:3001',
+					changeOrigin: true,
+					secure: false,
+				}
+			}
+		},
 		build: {
 			rollupOptions: {
 				output: {
