@@ -304,6 +304,9 @@ export const ConciergePdfDocument: React.FC<{ data: ConciergeReportData; enriche
   const nights = calculateNights(data.checkin, data.checkout);
   const travelTypeLabel = TRAVEL_TYPE_LABELS[data.travelType] || data.travelType;
   const budgetLabel = BUDGET_LABELS[data.budget] || data.budget;
+  
+  console.log('ConciergePdfDocument - dados recebidos:', { data, enriched });
+  console.log('ConciergePdfDocument - enriched keys:', enriched ? Object.keys(enriched) : 'enriched é null/undefined');
 
   return (
     <Document>

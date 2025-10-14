@@ -49,6 +49,8 @@ export function ConciergeReport({
       const pdfData = extractPdfData(report);
       
       console.log('Gerando PDF premium com dados:', pdfData);
+      console.log('Dados enriched:', report.enriched);
+      console.log('Tipo do enriched:', typeof report.enriched);
       
       // Gerar PDF usando @react-pdf/renderer
       const pdfDoc = <ConciergePdfDocument data={pdfData} enriched={report.enriched} />;
