@@ -1350,6 +1350,181 @@ Este relatório foi gerado para ${formData.clientName} para uma viagem ${formDat
   };
 }
 
+// Função para gerar relatório de concierge com dados enriquecidos (fallback robusto)
+function generateConciergeReportEnriched(formData) {
+  const startTime = Date.now();
+  
+  // Calcular duração da estadia
+  const checkinDate = new Date(formData.checkin);
+  const checkoutDate = new Date(formData.checkout);
+  const durationDays = Math.ceil((checkoutDate.getTime() - checkinDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Gerar itinerário dia a dia simulado
+  const daily_itinerary = [];
+  for (let i = 0; i < durationDays; i++) {
+    const date = new Date(checkinDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = date.toISOString().slice(0, 10);
+    
+    daily_itinerary.push({
+      date: dateStr,
+      weather: { min: 18, max: 28, condition: 'Ensolarado' },
+      hotel_breakfast: {
+        time: '08:00',
+        items: [{ name: formData.hotel || 'Hotel', note: 'Café da manhã incluído' }]
+      },
+      morning: {
+        time: '09:30',
+        items: [{ name: `Atração turística em ${formData.destination}`, address: 'Centro histórico', distanceKm: 2.5 }]
+      },
+      lunch: {
+        time: '12:30',
+        items: [{ name: 'Restaurante local recomendado', address: 'Região central', price: 3, distanceKm: 1.2 }]
+      },
+      afternoon: {
+        time: '15:00',
+        items: [{ name: 'Passeio cultural', address: formData.destination, distanceKm: 3.1 }]
+      },
+      dinner: {
+        time: '19:30',
+        items: [{ name: 'Jantar especial', address: 'Área gastronômica', price: 4, distanceKm: 2.8 }]
+      },
+      evening: {
+        time: '21:00',
+        items: [{ name: 'Bar panorâmico', address: `${formData.destination} - Centro`, distanceKm: 1.5 }]
+      }
+    });
+  }
+  
+  // Restaurantes simulados
+  const restaurants = [
+    { 
+      name: 'Restaurante Premium', 
+      address: `${formData.destination} - Centro`, 
+      rating: 4.5, 
+      price: 4, 
+      cuisine: 'Internacional',
+      signature_dish: 'Pratos da culinária local',
+      chef: 'Chef renomado local'
+    },
+    { 
+      name: 'Bistrô Local', 
+      address: `${formData.destination} - Bairro histórico`, 
+      rating: 4.3, 
+      price: 3, 
+      cuisine: 'Regional',
+      signature_dish: 'Especialidade regional',
+      chef: 'Chef tradicional'
+    },
+    { 
+      name: 'Café Gourmet', 
+      address: `${formData.destination}`, 
+      rating: 4.7, 
+      price: 2, 
+      cuisine: 'Café e lanches',
+      signature_dish: 'Café artesanal',
+      chef: 'Barista especializado'
+    }
+  ];
+  
+  // Vida noturna simulada
+  const nightlife = [
+    { 
+      name: 'Bar Panorâmico', 
+      address: `${formData.destination}`, 
+      type: 'Bar', 
+      vibe: 'Sofisticado',
+      specialty: 'Coquetéis premium',
+      rating: 4.4
+    },
+    { 
+      name: 'Lounge Musical', 
+      address: `${formData.destination}`, 
+      type: 'Lounge', 
+      vibe: 'Relaxante',
+      specialty: 'Música ao vivo',
+      rating: 4.2
+    },
+    { 
+      name: 'Casa de Shows', 
+      address: `${formData.destination}`, 
+      type: 'Casa de show', 
+      vibe: 'Animado',
+      specialty: 'Shows locais',
+      rating: 4.6
+    }
+  ];
+  
+  // Dados enriquecidos estruturados
+  const enriched_json = {
+    context: {
+      destination: formData.destination,
+      checkin: formData.checkin,
+      checkout: formData.checkout,
+      travelType: formData.travelType,
+      budget: formData.budget,
+      clientName: formData.clientName,
+      adults: formData.adults || 1,
+      children: formData.children || 0,
+      hotel: formData.hotel,
+      address: formData.address
+    },
+    summary: `${formData.clientName} realizará viagem ${formData.travelType} para ${formData.destination} (${formData.checkin} a ${formData.checkout}), com orçamento ${formData.budget}. Este relatório foi gerado localmente com dados simulados e inclui sugestões de atividades, restaurantes e atrações para cada dia da viagem.`,
+    currency_timezone_language: {
+      currency: 'BRL (Real Brasileiro)',
+      timezone: 'UTC-03:00',
+      language: 'Português'
+    },
+    practical: {
+      tipping: 'Gorjeta opcional (10%), não obrigatória',
+      power: 'Tomadas padrão brasileiro (tipo N, 127V/220V)',
+      transport: 'Táxi, Uber, transporte público disponível'
+    },
+    daily_itinerary,
+    restaurants,
+    nightlife,
+    events: [],
+    safety_tips: [
+      'Mantenha documentos em local seguro',
+      'Use cofres do hotel',
+      'Evite áreas pouco movimentadas à noite',
+      'Tenha sempre um telefone de emergência',
+      'Informe ao hotel sobre seus planos diários'
+    ],
+    cultural_tips: [
+      'Respeite costumes locais',
+      'Aprenda cumprimentos básicos',
+      'Vista-se adequadamente ao visitar locais religiosos',
+      'Seja respeitoso com tradições locais',
+      'Experimente a culinária regional'
+    ],
+    consulate: null,
+    sources: [{ type: 'local-generator', provider: 'mock-data' }]
+  };
+  
+  // Gerar HTML (reutilizar a função premiumWrapper existente)
+  const reportHtml = premiumWrapper(
+    `<h2>Resumo Executivo</h2><p>${enriched_json.summary}</p><h2>Informações da Viagem</h2><p>Viagem ${formData.travelType} para ${formData.destination} com duração de ${durationDays} dias. Orçamento ${formData.budget} para ${formData.adults || 1} adulto(s)${formData.children > 0 ? ` e ${formData.children} criança(s)` : ''}.</p>`,
+    formData
+  );
+  
+  const processingTime = Date.now() - startTime;
+  
+  return {
+    report: {
+      content: enriched_json.summary,
+      html: reportHtml,
+      metadata: {
+        processingTime,
+        tokensUsed: 0,
+        model: 'local-generator-enriched'
+      }
+    },
+    enriched_json,
+    sources: enriched_json.sources
+  };
+}
+
 // Endpoint para gerar relatório de Concierge
 app.post("/api/concierge/generate", async (req, res, next) => {
   try {
@@ -1383,25 +1558,49 @@ app.post("/api/concierge/generate", async (req, res, next) => {
 
     let report, enriched_json, sources;
     if (FEATURE_USE_AI) {
-      const result = await generatePremiumPipeline({
-        clientName,
-        destination,
-        checkin,
-        checkout,
-        travelType,
-        budget,
-        adults: adults || 1,
-        children: children || 0,
-        hotel,
-        address,
-        interests: interests || [],
-        observations
-      });
-      report = result.report;
-      enriched_json = result.enriched_json;
-      sources = result.sources;
+      try {
+        // Tentar pipeline premium com IA
+        const result = await generatePremiumPipeline({
+          clientName,
+          destination,
+          checkin,
+          checkout,
+          travelType,
+          budget,
+          adults: adults || 1,
+          children: children || 0,
+          hotel,
+          address,
+          interests: interests || [],
+          observations
+        });
+        report = result.report;
+        enriched_json = result.enriched_json;
+        sources = result.sources;
+      } catch (aiError) {
+        console.warn('Pipeline IA falhou, usando fallback local:', aiError.message);
+        // Usar gerador local melhorado como fallback
+        const localResult = generateConciergeReportEnriched({
+          clientName,
+          destination,
+          checkin,
+          checkout,
+          travelType,
+          budget,
+          adults: adults || 1,
+          children: children || 0,
+          hotel,
+          address,
+          interests: interests || [],
+          observations
+        });
+        report = localResult.report;
+        enriched_json = localResult.enriched_json;
+        sources = localResult.sources;
+      }
     } else {
-      report = generateConciergeReport({
+      // Usar gerador local melhorado
+      const localResult = generateConciergeReportEnriched({
         clientName,
         destination,
         checkin,
@@ -1415,6 +1614,9 @@ app.post("/api/concierge/generate", async (req, res, next) => {
         interests: interests || [],
         observations
       });
+      report = localResult.report;
+      enriched_json = localResult.enriched_json;
+      sources = localResult.sources;
     }
 
     // Salvar no Supabase (com fallback sem DB)
