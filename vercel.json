@@ -1,9 +1,9 @@
 {
   "version": 2,
-  "buildCommand": "cd desktop && npm install && npm run build",
+  "buildCommand": "cd desktop && npm ci && npm run build",
   "outputDirectory": "desktop/dist",
   "framework": "vite",
-  "installCommand": "npm install && cd desktop && npm install",
+  "installCommand": "npm ci && cd desktop && npm ci",
   "rewrites": [
     {
       "source": "/api/:path*",
