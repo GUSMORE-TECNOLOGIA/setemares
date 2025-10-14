@@ -4,13 +4,6 @@
   "outputDirectory": "desktop/dist",
   "framework": "vite",
   "installCommand": "npm install && cd desktop && npm install",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs20.x",
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  },
   "rewrites": [
     {
       "source": "/api/:path*",
