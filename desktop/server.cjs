@@ -1557,8 +1557,11 @@ app.post("/api/concierge/generate", async (req, res, next) => {
     }
 
     let report, enriched_json, sources;
+    console.log('=== FEATURE_USE_AI ===', FEATURE_USE_AI);
+    
     if (FEATURE_USE_AI) {
       try {
+        console.log('=== TENTANDO PIPELINE IA ===');
         // Tentar pipeline premium com IA
         const result = await generatePremiumPipeline({
           clientName,
@@ -1574,12 +1577,19 @@ app.post("/api/concierge/generate", async (req, res, next) => {
           interests: interests || [],
           observations
         });
+        console.log('=== PIPELINE IA SUCESSO ===', {
+          hasReport: !!result.report,
+          hasEnriched: !!result.enriched_json,
+          enrichedKeys: result.enriched_json ? Object.keys(result.enriched_json) : 'null'
+        });
         report = result.report;
         enriched_json = result.enriched_json;
         sources = result.sources;
       } catch (aiError) {
-        console.warn('Pipeline IA falhou, usando fallback local:', aiError.message);
+        console.warn('=== PIPELINE IA FALHOU ===', aiError.message);
+        console.warn('Stack trace:', aiError.stack);
         // Usar gerador local melhorado como fallback
+        console.log('=== USANDO FALLBACK LOCAL ===');
         const localResult = generateConciergeReportEnriched({
           clientName,
           destination,
@@ -1593,6 +1603,11 @@ app.post("/api/concierge/generate", async (req, res, next) => {
           address,
           interests: interests || [],
           observations
+        });
+        console.log('=== FALLBACK LOCAL SUCESSO ===', {
+          hasReport: !!localResult.report,
+          hasEnriched: !!localResult.enriched_json,
+          enrichedKeys: localResult.enriched_json ? Object.keys(localResult.enriched_json) : 'null'
         });
         report = localResult.report;
         enriched_json = localResult.enriched_json;
@@ -1662,6 +1677,13 @@ app.post("/api/concierge/generate", async (req, res, next) => {
       }
     }
 
+    console.log('=== RESPONSE FINAL ===', {
+      hasReport: !!report,
+      hasEnriched: !!enriched_json,
+      enrichedKeys: enriched_json ? Object.keys(enriched_json) : 'null',
+      enrichedType: typeof enriched_json
+    });
+    
     res.json({
       success: true,
       report: {
