@@ -1582,6 +1582,13 @@ app.post("/api/concierge/generate", async (req, res, next) => {
           hasEnriched: !!result.enriched_json,
           enrichedKeys: result.enriched_json ? Object.keys(result.enriched_json) : 'null'
         });
+        
+        // Verificar se enriched_json é null ou vazio
+        if (!result.enriched_json || Object.keys(result.enriched_json).length === 0) {
+          console.warn('=== PIPELINE IA RETORNOU ENRICHED VAZIO, USANDO FALLBACK ===');
+          throw new Error('Pipeline IA retornou enriched_json vazio');
+        }
+        
         report = result.report;
         enriched_json = result.enriched_json;
         sources = result.sources;
