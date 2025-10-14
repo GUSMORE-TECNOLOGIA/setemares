@@ -40,11 +40,21 @@ export function ConciergeReport({
 
     setIsGeneratingPremiumPdf(true);
     try {
+      // Verificar se @react-pdf/renderer está disponível
+      if (typeof pdf === 'undefined') {
+        throw new Error('@react-pdf/renderer não está disponível');
+      }
+
       // Extrair dados do relatório para o PDF
       const pdfData = extractPdfData(report);
       
+      console.log('Gerando PDF premium com dados:', pdfData);
+      
       // Gerar PDF usando @react-pdf/renderer
-      const blob = await pdf(<ConciergePdfDocument data={pdfData} enriched={report.enriched} />).toBlob();
+      const pdfDoc = <ConciergePdfDocument data={pdfData} enriched={report.enriched} />;
+      const blob = await pdf(pdfDoc).toBlob();
+      
+      console.log('PDF gerado com sucesso, tamanho:', blob.size);
       
       // Download
       const url = window.URL.createObjectURL(blob);
@@ -57,7 +67,8 @@ export function ConciergeReport({
       document.body.removeChild(a);
     } catch (error) {
       console.error('Erro ao gerar PDF premium:', error);
-      alert('Erro ao gerar PDF premium. Tente novamente.');
+      console.error('Stack trace:', error.stack);
+      alert(`Erro ao gerar PDF premium: ${error.message}. Tente novamente.`);
     } finally {
       setIsGeneratingPremiumPdf(false);
     }
