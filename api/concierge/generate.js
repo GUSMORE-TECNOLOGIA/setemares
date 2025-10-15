@@ -20,6 +20,8 @@ async function generateConciergeReportWithAI(formData) {
   try {
     // Importar OpenAI dinamicamente para evitar problemas de build
     const OpenAI = (await import('openai')).default;
+    console.log('🔑 OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+    console.log('🔑 OPENAI_API_KEY length:', process.env.OPENAI_API_KEY?.length || 0);
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     
     const sys = `Você é um concierge sênior de luxo com 20 anos de experiência.
