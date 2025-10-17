@@ -89,10 +89,6 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
     const ravMatch = text.match(/du\s+(\d+)%/i);
     const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
     
-    // Detectar percentual de Incentivo - formato: "in 2%"
-    const incentivoMatch = text.match(/in\s+(\d+)%/i);
-    const incentivoPercent = incentivoMatch ? parseInt(incentivoMatch[1]) : undefined;
-    
     console.log(`✈️ Segmentos encontrados:`, segments);
     console.log(`💰 Tarifas encontradas:`, fares);
     console.log(`💳 Pagamento:`, payment);
@@ -100,7 +96,6 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
     console.log(`📝 Notas:`, notes);
     console.log(`📊 Parcelas:`, numParcelas);
     console.log(`📊 RAV:`, ravPercent);
-    console.log(`📊 Incentivo:`, incentivoPercent);
     
     return {
       label: `Opção ${idx + 1}`,
@@ -110,8 +105,7 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
       fares: fares.map(f => ({ ...f, includeInPdf: true })),
       baggage,
       numParcelas,
-      ravPercent,
-      incentivoPercent
+      ravPercent
     };
   });
   

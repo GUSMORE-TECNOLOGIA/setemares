@@ -85,12 +85,11 @@ function buildSimpleSummary(parsed: Awaited<ReturnType<typeof parsePNR>>): Simpl
     baggage: parsed.baggage || 'Conforme regra da tarifa',
     notes: parsed.notes || '',
     numParcelas: parsed.numParcelas,
-    ravPercent: parsed.ravPercent,
-    incentivoPercent: parsed.incentivoPercent
+    ravPercent: parsed.ravPercent
   };
 }
 
-function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number, incentivoPercent?: number): PricingResult {
+function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number): PricingResult {
   // PROBLEMA IDENTIFICADO: Não devemos somar tarifas de tipos diferentes (ADT + CHD)
   // O mapPricingResult deve retornar um resultado consolidado apenas para referência
   // O cálculo individual será feito em buildSingleOptionMultiStackedData
@@ -98,13 +97,9 @@ function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number, in
   const totalBaseFare = summary.fares.reduce((sum, fare) => sum + fare.baseFare, 0);
   const totalBaseTaxes = summary.fares.reduce((sum, fare) => sum + fare.baseTaxes, 0);
 
-  // Calcular incentivo em valor monetário (percentual sobre a tarifa base total)
-  const incentivoValue = incentivoPercent ? (totalBaseFare * incentivoPercent / 100) : 0;
-
   console.log('🔍 mapPricingResult - Consolidado:', {
     totalBaseFare,
     totalBaseTaxes,
-    incentivoValue,
     fareCount: summary.fares.length,
     fareTypes: summary.fares.map(f => `${f.fareClass}/${f.paxType}`)
   });
@@ -113,8 +108,7 @@ function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number, in
     tarifa: totalBaseFare,
     taxasBase: totalBaseTaxes,
     ravPercent: ravPercent || 10, // Usar RAV detectado ou padrão 10%
-    fee: 0,
-    incentivo: incentivoValue
+    fee: 0
   });
 }
 function parseBaggageString(baggage?: string): ParsedBaggage[] | undefined {
@@ -365,13 +359,11 @@ export function useBookingsController(): BookingControllerReturn {
 
     const totalBaseFare = categories.reduce((sum, category) => sum + (category?.baseFare ?? 0), 0);
     const totalBaseTaxes = categories.reduce((sum, category) => sum + (category?.baseTaxes ?? 0), 0);
-    const incentivoValue = simplePnrData?.incentivoPercent ? (totalBaseFare * simplePnrData.incentivoPercent / 100) : 0;
     
-    
-    const result = computeTotals({ tarifa: totalBaseFare, taxasBase: totalBaseTaxes, ravPercent: simplePnrData?.ravPercent || 10, fee: 0, incentivo: incentivoValue });
+    const result = computeTotals({ tarifa: totalBaseFare, taxasBase: totalBaseTaxes, ravPercent: simplePnrData?.ravPercent || 10, fee: 0 });
     setPricingResult(result);
     setResetTrigger((prev) => prev + 1);
-  }, [simplePnrData?.ravPercent, simplePnrData?.incentivoPercent]);
+  }, [simplePnrData?.ravPercent]);
 
   const setPricingResultFromEngine = useCallback((result: PricingResult) => {
     setPricingResult(result);
@@ -453,7 +445,7 @@ export function useBookingsController(): BookingControllerReturn {
 
     const summary = buildSimpleSummary(parsed);
     setSimplePnrData(summary);
-    setPricingResult(summary ? mapPricingResult(summary, summary.ravPercent, summary.incentivoPercent) : null);
+    setPricingResult(summary ? mapPricingResult(summary, summary.ravPercent) : null);
 
     if (parsed.trechos) {
       const { startTime, quoteId } = healthMonitor.recordQuoteStart();
@@ -587,13 +579,12 @@ export function useBookingsController(): BookingControllerReturn {
 
     const itinerary = parsed.trechos ? await decodeItinerary(parsed.trechos) : undefined;
     const summary = buildSimpleSummary(parsed);
-    const effectivePricing = pricingResult ?? (summary ? mapPricingResult(summary, summary.ravPercent, summary.incentivoPercent) : null);
+    const effectivePricing = pricingResult ?? (summary ? mapPricingResult(summary, summary.ravPercent) : null);
     
     console.log('🔍 buildSimplePdf dados:', {
       summary: summary ? { 
         faresCount: summary.fares.length, 
         ravPercent: summary.ravPercent, 
-        incentivoPercent: summary.incentivoPercent,
         fares: summary.fares.map(f => ({ fareClass: f.fareClass, baseFare: f.baseFare, baseTaxes: f.baseTaxes }))
       } : null,
       effectivePricing,
@@ -808,7 +799,6 @@ function buildSingleOptionMultiStackedData(
     summary: summary ? { 
       faresCount: summary.fares.length, 
       ravPercent: summary.ravPercent, 
-      incentivoPercent: summary.incentivoPercent,
       fares: summary.fares.map(f => ({ fareClass: f.fareClass, baseFare: f.baseFare, baseTaxes: f.baseTaxes }))
     } : null,
     pricingResult
@@ -836,20 +826,15 @@ function buildSingleOptionMultiStackedData(
     console.log(`🔍 Verificando condição para ${fare.fareClass}:`, {
       hasPricingResult: !!pricingResult,
       hasRavPercent: !!summary?.ravPercent,
-      hasIncentivoPercent: !!summary?.incentivoPercent,
-      ravPercent: summary?.ravPercent,
-      incentivoPercent: summary?.incentivoPercent,
-      conditionMet: !!(pricingResult && summary?.incentivoPercent)
+      ravPercent: summary?.ravPercent
     });
     
-    if (pricingResult && summary?.incentivoPercent) {
-      const incentivoValue = baseFare * (summary.incentivoPercent / 100);
+    if (pricingResult && summary?.ravPercent) {
       const individualPricing = computeTotals({
         tarifa: baseFare,
         taxasBase: baseTaxes,
         ravPercent: summary.ravPercent || 10, // Usar RAV detectado ou padrão 10%
-        fee: 0,
-        incentivo: incentivoValue
+        fee: 0
       });
       adjustedTaxes = individualPricing.taxasExibidas;
       
@@ -857,7 +842,6 @@ function buildSingleOptionMultiStackedData(
       console.log(`🔍 PDF Debug - ${fare.fareClass}:`, {
         baseFare,
         baseTaxes,
-        incentivoValue,
         adjustedTaxes,
         total: baseFare + adjustedTaxes,
         individualPricing

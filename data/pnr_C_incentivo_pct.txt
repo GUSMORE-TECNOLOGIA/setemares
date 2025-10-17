@@ -1,3 +1,2 @@
 tarifa usd 1500.00 + txs usd 300.00
-in 5%
 AA 1234 02FEB GRUMIA 2200 #0600

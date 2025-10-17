@@ -6,7 +6,6 @@ AF 454 07MAY CDGGRU HK2 2330 #0615
 
 tarifa usd 22286.00 + txs usd 594.00
 Fee usd 50.00
-in 3%
 Troca usd 400.00
 Reembolso não permite
 2pc 32kg/exe

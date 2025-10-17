@@ -122,7 +122,7 @@ node scripts/seed-decoder-v2.js
 
 ## 5. Próximos Passos
 
-- **Pricing Engine** (RAV 10% + Fee + Incentivo)
+- **Pricing Engine** (RAV 10% + Fee)
 - **PDF** com dados corrigidos
 - **Histórico** de cotações
 - **Relatórios** de uso

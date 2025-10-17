@@ -75,22 +75,12 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.fee.setRange(0, 1_000_000)
 		self.fee.setDecimals(2)
 
-		self.incentivo_val = QtWidgets.QDoubleSpinBox(); self.incentivo_val.setButtonSymbols(QtWidgets.QAbstractSpinBox.UpDownArrows)
-		self.incentivo_val.setRange(0, 1_000_000)
-		self.incentivo_val.setDecimals(2)
-
-		self.incentivo_pct = QtWidgets.QDoubleSpinBox(); self.incentivo_pct.setSuffix(" %"); self.incentivo_pct.setButtonSymbols(QtWidgets.QAbstractSpinBox.UpDownArrows)
-		self.incentivo_pct.setRange(0, 100)
-		self.incentivo_pct.setDecimals(2)
-
 		# v0.5 — Qtd Cotação
 		self.qtd_cotacao = QtWidgets.QSpinBox(); self.qtd_cotacao.setRange(1,9); self.qtd_cotacao.setValue(int(QtCore.QSettings("SeteMares","Cotador").value("ui/qtd_cotacao", 1)))
 		self.qtd_cotacao.setButtonSymbols(QtWidgets.QAbstractSpinBox.UpDownArrows)
 
 		form.addRow("RAV %:", self.rav_pct)
 		form.addRow("Fee (USD):", self.fee)
-		form.addRow("Incentivo (USD):", self.incentivo_val)
-		form.addRow("Incentivo %:", self.incentivo_pct)
 		form.addRow("Qtd Cotação:", self.qtd_cotacao)
 
 		# Campos adicionais para layout
@@ -314,8 +304,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			"multaBaseUSD": float(self.multa_base.value()),
 			"reembolsavel": bool(self.reembolsavel.isChecked()),
 			"feeUSD": float(self.fee.value()),
-			"incentivoUSD": float(self.incentivo_val.value()),
-			"incentivoPct": float(self.incentivo_pct.value()),
 			"ravPct": float(self.rav_pct.value()),
 		}
 
@@ -338,7 +326,7 @@ class MainWindow(QtWidgets.QMainWindow):
 		parsed = parse_pnr(text)
 		# calcula totais no snapshot (congelar)
 		from decimal import Decimal as _D
-		calcs = compute_totals(parsed.get("tarifa","0"), parsed.get("taxas_base","0"), float(self.rav_pct.value()), str(self.fee.value()), str(self.incentivo_val.value() if self.incentivo_val.value()>0 else parsed.get("incentivo","0")))
+		calcs = compute_totals(parsed.get("tarifa","0"), parsed.get("taxas_base","0"), float(self.rav_pct.value()), str(self.fee.value()))
 		# decode rota/saida
 		decoded = None
 		try:
@@ -405,8 +393,6 @@ class MainWindow(QtWidgets.QMainWindow):
 		self.multa_base.setValue(float(p.get("multaBaseUSD", self.multa_base.value())))
 		self.reembolsavel.setChecked(bool(p.get("reembolsavel", self.reembolsavel.isChecked())))
 		self.fee.setValue(float(p.get("feeUSD", self.fee.value())))
-		self.incentivo_val.setValue(float(p.get("incentivoUSD", self.incentivo_val.value())))
-		self.incentivo_pct.setValue(float(p.get("incentivoPct", self.incentivo_pct.value())))
 		self.rav_pct.setValue(float(p.get("ravPct", self.rav_pct.value())))
 		self.update_add_button_state()
 
@@ -458,15 +444,10 @@ class MainWindow(QtWidgets.QMainWindow):
 					fare_details = []
 					grand_total = Decimal("0")
 					fee = Decimal(q.get("fee", "0")) if self.fee.value() == 0 else Decimal(f"{self.fee.value():.2f}")
-					incentivo_manual = Decimal(f"{self.incentivo_val.value():.2f}")
-					incentivo = incentivo_manual if incentivo_manual > 0 else Decimal(q.get("incentivo", "0"))
 					for f in fares:
 						cat_tarifa = Decimal(f.get("tarifa","0"))
 						cat_taxas = Decimal(f.get("taxas","0"))
-						cat_incentivo = incentivo
-						if incentivo_manual == 0 and self.incentivo_pct.value() > 0:
-							cat_incentivo = cat_tarifa * Decimal(self.incentivo_pct.value()) / Decimal(100)
-						calcs = compute_totals(str(cat_tarifa), str(cat_taxas), float(self.rav_pct.value()), str(fee), str(cat_incentivo))
+						calcs = compute_totals(str(cat_tarifa), str(cat_taxas), float(self.rav_pct.value()), str(fee))
 						total_cat = Decimal(calcs["total"])
 						fare_details.append({"label": f.get("category",""), "total": f"{total_cat:.2f}"})
 						grand_total += total_cat
@@ -581,15 +562,6 @@ class MainWindow(QtWidgets.QMainWindow):
 			taxas_base = Decimal(parsed.get("taxas_base", "0"))
 			
 			fee = Decimal(parsed.get("fee", "0")) if self.fee.value() == 0 else Decimal(f"{self.fee.value():.2f}")
-			# Incentivo: preferir valor manual; caso contrário usar do parse (valor fixo tem prioridade)
-			incentivo_manual = Decimal(f"{self.incentivo_val.value():.2f}")
-			if incentivo_manual > 0:
-				incentivo = incentivo_manual
-			else:
-				incentivo = Decimal(parsed.get("incentivo", "0"))
-			# Incentivo % manual (aplicado se valor ainda zero)
-			if incentivo == 0 and self.incentivo_pct.value() > 0:
-				incentivo = tarifa * Decimal(self.incentivo_pct.value()) / Decimal(100)
 
 			# Se houver múltiplas tarifas, calcula cada uma
 			if fares:
@@ -597,12 +569,8 @@ class MainWindow(QtWidgets.QMainWindow):
 				for f in fares:
 					cat_tarifa = Decimal(f["tarifa"])
 					cat_taxas = Decimal(f["taxas"])
-					# Recalcula incentivo % por tarifa, se aplicável
-					cat_incentivo = incentivo
-					if incentivo_manual == 0 and self.incentivo_pct.value() > 0:
-						cat_incentivo = cat_tarifa * Decimal(self.incentivo_pct.value()) / Decimal(100)
 					
-					calcs = compute_totals(str(cat_tarifa), str(cat_taxas), float(self.rav_pct.value()), str(fee), str(cat_incentivo))
+					calcs = compute_totals(str(cat_tarifa), str(cat_taxas), float(self.rav_pct.value()), str(fee))
 					total_cat = Decimal(calcs["total"])
 					fare_details.append({
 						"label": labels.get(f["category"], f["category"]),
@@ -625,7 +593,7 @@ class MainWindow(QtWidgets.QMainWindow):
 				"fare_details": fare_details,
 				"grand_total": f"{grand_total:.2f}",
 				# Dados legados para template de cotação única
-				"total": f"{grand_total:.2f}" if fare_details else compute_totals(str(tarifa), str(taxas_base), float(self.rav_pct.value()), str(fee), str(incentivo))["total"],
+				"total": f"{grand_total:.2f}" if fare_details else compute_totals(str(tarifa), str(taxas_base), float(self.rav_pct.value()), str(fee))["total"],
 			}
 
 			# Ajuste de multa baseado no parser

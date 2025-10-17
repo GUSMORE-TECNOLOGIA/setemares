@@ -6,7 +6,7 @@ Sistema moderno para processamento e geração de cotações aéreas com base em
 
 - **Processamento de PNR**: Suporte a PNRs simples e complexos com múltiplas opções
 - **Geração de PDF**: Criação automática de PDFs profissionais com layout otimizado
-- **Engine de Preços**: Cálculo automático de RAV, incentivos e taxas
+- **Engine de Preços**: Cálculo automático de RAV e taxas
 - **Interface Moderna**: Design system com tema claro/escuro e acessibilidade completa
 - **Performance**: Code-splitting, lazy loading e otimizações de bundle
 - **Segurança**: RLS (Row Level Security) no Supabase e headers de segurança
@@ -95,7 +95,7 @@ LX 92 03MAY ZRHGRU HS1 2240 #0525
 TARIFA USD 12945.00 + TXS USD 130.00 *Primeira
 TARIFA USD 6949.00 + TXS USD 130.00 *Exe
 
-pagto 10x - in 2%
+pagto 10x
 ```
 
 ## 📊 Performance e Monitoramento

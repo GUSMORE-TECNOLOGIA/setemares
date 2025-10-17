@@ -1,4 +1,3 @@
 tarifa usd 22286.00 + txs usd 594.00
 Fee usd 50.00
-in 3%
 AF 459 14APR GRUCDG HS2 1915 #1115

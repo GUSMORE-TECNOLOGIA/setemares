@@ -78,18 +78,9 @@ def _parse_single(text: str) -> Dict[str, Any]:
 
 	fee = _extract_amount(rf"(?:fee|du|taxa de serviço)\s*{ccy_opt}\s*([\d.,]+)", text)
 
-	# Percentual tem prioridade quando presente
-	inc_pct_match = re.search(r"(?:in|incentivo|bonus|inc)\s*([\d.,]+)\s*%", text, flags=re.I)
-	inc_pct = Decimal(str(inc_pct_match.group(1)).replace(",", ".")) if inc_pct_match else Decimal("0")
-	# Valor fixo exige moeda explícita
-	inc_val = _extract_amount(rf"(?:in|incentivo|bonus|inc)\s*{ccy_req}\s*([\d.,]+)", text)
-
 	# Multa
 	multa_match = re.search(rf"troca\s*{ccy_opt}\s*([\d.,]+)", text, flags=re.I)
 	multa = money(multa_match.group(1)) if multa_match else Decimal("0")
-
-	# Incentivo: valor fixo tem prioridade
-	incentivo = inc_val if inc_val > 0 else (tarifa * inc_pct / Decimal(100))
 
 	# Trechos
 	trechos: List[str] = re.findall(r"^\s*[A-Z0-9]{2}\s*\d{2,4}.*$", text, flags=re.I | re.M)
@@ -105,7 +96,6 @@ def _parse_single(text: str) -> Dict[str, Any]:
 		"taxas_base": str(taxas_base),
 		"fares": fares,
 		"fee": str(money(fee)),
-		"incentivo": str(money(incentivo)),
 		"trechos": trechos,
 		"multa": str(money(multa)),
 		"currency": currency,

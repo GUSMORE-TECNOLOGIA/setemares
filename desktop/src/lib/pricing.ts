@@ -6,7 +6,6 @@ export interface PricingParams {
   taxasBase: number;
   ravPercent: number;
   fee: number;
-  incentivo: number;
 }
 
 export interface PricingResult {
@@ -24,13 +23,13 @@ function q2(value: number): number {
 
 // Calcular totais baseado nas regras do backend
 export function computeTotals(params: PricingParams): PricingResult {
-  const { tarifa, taxasBase, ravPercent, fee, incentivo } = params;
+  const { tarifa, taxasBase, ravPercent, fee } = params;
 
   // RAV = tarifa_base * (rav_percent/100)
   const rav = q2(tarifa * (ravPercent / 100));
 
-  // Comissão (lucro) = RAV + fee + incentivo
-  const comissao = q2(rav + fee + incentivo);
+  // Comissão (lucro) = RAV + fee
+  const comissao = q2(rav + fee);
 
   // Taxas exibidas = taxas_base + Comissão
   const taxasExibidas = q2(taxasBase + comissao);
@@ -79,10 +78,6 @@ export function validatePricingParams(params: PricingParams): string[] {
 
   if (params.fee < 0) {
     errors.push('Fee deve ser maior ou igual a zero');
-  }
-
-  if (params.incentivo < 0) {
-    errors.push('Incentivo deve ser maior ou igual a zero');
   }
 
   return errors;

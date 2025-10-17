@@ -22,7 +22,6 @@ interface AdvancedPricingEngineProps {
   resetTrigger: number;
   ravPercent?: number;
   fee?: number;
-  incentivoPercent?: number;
   numParcelas?: number;
 }
 
@@ -35,7 +34,6 @@ export function AdvancedPricingEngine({
   resetTrigger,
   ravPercent = 10,
   fee = 0,
-  incentivoPercent = 0,
   numParcelas
 }: AdvancedPricingEngineProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
@@ -43,53 +41,45 @@ export function AdvancedPricingEngine({
   const [globalConfig, setGlobalConfig] = useState({
     ravPercent,
     fee,
-    incentivoPercent,
     numParcelas: numParcelas || 4
   });
   const [localParams, setLocalParams] = useState<PricingParams>({
     tarifa: 0,
     taxasBase: 0,
     ravPercent,
-    fee,
-    incentivo: 0 // Será calculado dinamicamente baseado no incentivoPercent
+    fee
   });
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Sincronizar quando props mudarem (ex.: parser detecta incentivo 2%)
+  // Sincronizar quando props mudarem
   useEffect(() => {
     // Só atualizar numParcelas se não foi editado manualmente (manter valor atual se já foi modificado)
     setGlobalConfig(prevConfig => ({
       ravPercent,
       fee,
-      incentivoPercent,
       numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4)
     }));
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
-      const incentivoValue = incentivoPercent ? (currentCategory.baseFare * incentivoPercent / 100) : 0;
       setLocalParams({
         tarifa: currentCategory.baseFare,
         taxasBase: currentCategory.baseTaxes,
         ravPercent,
-        fee,
-        incentivo: incentivoValue
+        fee
       });
     }
-  }, [ravPercent, fee, incentivoPercent, fareCategories, currentCategoryIndex]);
+  }, [ravPercent, fee, fareCategories, currentCategoryIndex]);
 
   // Atualizar parâmetros locais quando mudar de categoria
   useEffect(() => {
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
-      const incentivoValue = globalConfig.incentivoPercent ? (currentCategory.baseFare * globalConfig.incentivoPercent / 100) : 0;
-      
       
       setLocalParams({
         tarifa: currentCategory.baseFare,
         taxasBase: currentCategory.baseTaxes,
         ravPercent: globalConfig.ravPercent,
-        fee: globalConfig.fee,
-        incentivo: incentivoValue
+        fee: globalConfig.fee
       });
     }
   }, [currentCategoryIndex, fareCategories, globalConfig]);
@@ -122,7 +112,7 @@ export function AdvancedPricingEngine({
   };
 
   // Atualizar configuração global
-  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'incentivoPercent' | 'numParcelas', value: number) => {
+  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'numParcelas', value: number) => {
     setGlobalConfig(prev => ({
       ...prev,
       [key]: value
@@ -133,13 +123,11 @@ export function AdvancedPricingEngine({
   // Restaurar valores originais
   const handleRestore = () => {
     if (currentCategory) {
-      const incentivoValue = globalConfig.incentivoPercent ? (currentCategory.baseFare * globalConfig.incentivoPercent / 100) : 0;
       setLocalParams({
         tarifa: currentCategory.baseFare,
         taxasBase: currentCategory.baseTaxes,
         ravPercent: globalConfig.ravPercent,
-        fee: globalConfig.fee,
-        incentivo: incentivoValue
+        fee: globalConfig.fee
       });
       setHasChanges(false);
     }
@@ -345,18 +333,6 @@ export function AdvancedPricingEngine({
                     type="number"
                     value={globalConfig.fee}
                     onChange={(e) => handleGlobalConfigChange('fee', parseFloat(e.target.value) || 0)}
-                    className="w-full"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Incentivo (%)
-                  </label>
-                  <Input
-                    type="number"
-                    value={globalConfig.incentivoPercent}
-                    onChange={(e) => handleGlobalConfigChange('incentivoPercent', parseFloat(e.target.value) || 0)}
                     className="w-full"
                   />
                 </div>

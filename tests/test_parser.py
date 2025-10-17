@@ -7,5 +7,4 @@ def test_parse_basic():
 	assert data["tarifa"] == "22286.00"
 	assert data["taxas_base"] == "594.00"
 	assert data["fee"] == "50.00"
-	assert data["incentivo"] == "668.58"  # 22286 * 0.03
 	assert any(t.startswith("AF 459") for t in data["trechos"])

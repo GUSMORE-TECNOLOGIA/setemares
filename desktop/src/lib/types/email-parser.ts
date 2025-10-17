@@ -12,7 +12,6 @@ export type ParsedOption = {
   baggage?: ParsedBaggage[];   // opcional
   numParcelas?: number;        // número de parcelas detectado
   ravPercent?: number;         // percentual de RAV detectado
-  incentivoPercent?: number;   // percentual de Incentivo detectado
 };
 
 export type ParsedSegment = {

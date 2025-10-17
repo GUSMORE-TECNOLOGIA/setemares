@@ -24,7 +24,6 @@ export interface SimpleBookingSummary {
   notes: string;
   numParcelas?: number;
   ravPercent?: number;
-  incentivoPercent?: number;
 }
 
 export interface ProfessionalPdfPricing {

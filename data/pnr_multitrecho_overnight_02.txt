@@ -4,5 +4,4 @@ IB 1829 10OCT BCNGRU HK1 2230 #0440
 
 
 tarifa usd 1580.00 + txs usd 210.00
-incentivo usd 75.00
 Reembolso não permite

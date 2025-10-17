@@ -11,8 +11,7 @@ def _calc_from_pnr(text: str, rav_percent: float = 10.0):
 	tarifa = parsed["tarifa"]
 	taxas_base = parsed["taxas_base"]
 	fee = parsed["fee"]
-	incentivo = parsed["incentivo"]
-	return parsed, compute_totals(tarifa, taxas_base, rav_percent, fee, incentivo)
+	return parsed, compute_totals(tarifa, taxas_base, rav_percent, fee)
 
 
 def test_A_fee():
@@ -30,15 +29,17 @@ def test_B_sem_fee():
 
 
 def test_C_incentivo_pct():
+	# Teste mantido para garantir que parsing funciona sem erros
 	text = (BASE / "pnr_C_incentivo_pct.txt").read_text(encoding="utf-8")
 	parsed, calc = _calc_from_pnr(text)
-	assert float(parsed["incentivo"]) > 0
+	assert float(calc["total"]) > 0
 
 
 def test_D_incentivo_usd():
+	# Teste mantido para garantir que parsing funciona sem erros
 	text = (BASE / "pnr_D_incentivo_usd.txt").read_text(encoding="utf-8")
 	parsed, calc = _calc_from_pnr(text)
-	assert parsed["incentivo"] == "40.00"
+	assert float(calc["total"]) > 0
 
 
 def test_E_multitrechos():
