@@ -253,10 +253,6 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const ravMatch = pnrText.match(/du\s+(\d+)%/i);
   const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
   
-  // Detectar percentual de Incentivo - formato: "in 2%"
-  const incentivoMatch = pnrText.match(/in\s+(\d+)%/i);
-  const incentivoPercent = incentivoMatch ? parseInt(incentivoMatch[1]) : undefined;
-  
   // Decodificar segmentos
   const segments = trechos.map(trecho => {
     const parts = trecho.trim().split(/\s+/);
@@ -297,7 +293,6 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     notes,
     numParcelas,
     ravPercent,
-    incentivoPercent,
   };
 }
 
@@ -326,9 +321,9 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     if (parts.length >= 8) {
       [cia, flight, dateStr, route, , depTime, arrTime, arrDate] = parts;
     } 
-    // Formato: "DL  104   14OCT GRUATL HS1  2250  #0735"
+    // Formato: "DL  104   14OCT GRUATL HS1  2250  #0735" ou "AF  459   16NOV GRUCDG   2040  #1150"
     else if (parts.length >= 6) {
-      [cia, flight, dateStr, route, , depTime, arrTime] = parts;
+      [cia, flight, dateStr, route, depTime, arrTime] = parts;
     } 
     // Formato: "LA 8084   22NOV GRULHR HS1  2340  #1405"
     else if (parts.length >= 5) {
@@ -460,7 +455,6 @@ function formatTime(timeStr: string | undefined): string {
   
   // Se já está no formato HH:MM, retornar diretamente
   if (cleanTime.match(/^\d{2}:\d{2}$/)) {
-    console.log(`🕐 Horário já formatado: ${timeStr} -> ${cleanTime}`);
     return cleanTime;
   }
   
@@ -474,7 +468,6 @@ function formatTime(timeStr: string | undefined): string {
     const m = parseInt(minutes);
     
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-      console.log(`🕐 Formatando horário: ${timeStr} -> ${hours}:${minutes}`);
       return `${hours}:${minutes}`;
     } else {
       console.warn('❌ Horário inválido:', timeStr);
