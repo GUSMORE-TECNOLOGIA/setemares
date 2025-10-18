@@ -25,6 +25,7 @@ function mapSimpleToMulti(data: PdfData): MultiStackedPdfData {
       title: data.header.title,
       subtitle: data.header.subtitle,
       departureLabel: data.header.departureLabel,
+      quoteDate: data.header.quoteDate || 'Data da Cotação: ' + new Date().toLocaleDateString('pt-BR'),
       logoSrc: data.header.logoSrc
     },
     options: [
