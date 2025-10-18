@@ -245,6 +245,21 @@ const S = StyleSheet.create({
     minWidth: 90,
     alignSelf: "center"
   },
+  fareBaggage: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: "#374151",
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    textAlign: "center",
+    minWidth: 70,
+    alignSelf: "center",
+    marginLeft: 8
+  },
   
   // Informações da cotação (design premium)
   quoteInfoCard: {
@@ -357,6 +372,27 @@ const S = StyleSheet.create({
 });
 
 const fUSD = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+
+// Função para mapear franquia de bagagem por classe
+const getBaggageAllowance = (classLabel: string): string => {
+  const label = classLabel.toLowerCase();
+  
+  if (label.includes('exe') || label.includes('executiva') || label.includes('business')) {
+    return '2pc 32kg';
+  } else if (label.includes('pre') || label.includes('premium')) {
+    return '2pc 23kg';
+  } else if (label.includes('eco') || label.includes('economica') || label.includes('economy')) {
+    return '1pc 23kg';
+  }
+  
+  // Fallback baseado no tipo de passageiro
+  if (label.includes('chd') || label.includes('child')) {
+    return '1pc 23kg';
+  }
+  
+  // Default para adulto
+  return '1pc 23kg';
+};
 
 export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPdfData }) {
   const totalOptions = data.options.length;
@@ -493,7 +529,10 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                       Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}
                     </Text>
                   </View>
-                  <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
+                    <Text style={S.fareBaggage}>{getBaggageAllowance(fare.classLabel)}</Text>
+                  </View>
                 </View>
               ))}
             </View>

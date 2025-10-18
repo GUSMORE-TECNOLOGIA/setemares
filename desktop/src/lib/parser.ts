@@ -123,6 +123,13 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const lines = filteredText.split('\n').filter(line => line.trim());
   const trechos = lines.filter(line => /^[A-Z]{2}\s+\d+/.test(line.trim()));
   
+  // Detectar moeda do PNR
+  let detectedCurrency = 'USD'; // Default
+  const currencyMatch = pnrText.match(/\b(usd|eur|brl|gbp|cad|aud)\b/i);
+  if (currencyMatch) {
+    detectedCurrency = currencyMatch[1].toUpperCase();
+  }
+  
   // Detectar múltiplas tarifas em dois formatos
   // 1) "tarifa usd X + txs usd Y *Categoria[/Tipo]"
   // 2) "USD X + txs USD Y * categoria[/tipo]"
@@ -327,7 +334,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     incentivo: '0',
     trechos,
     multa: '0',
-    currency: 'USD',
+    currency: detectedCurrency,
     is_multi: isMulti,
     // Novos campos
     segments,

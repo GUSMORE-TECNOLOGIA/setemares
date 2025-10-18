@@ -911,6 +911,10 @@ function buildSingleOptionMultiStackedData(
   const numParcelas = summary?.numParcelas || 4;
   const defaultPaymentTerms = `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
   
+  // Extrair moeda do PNR para usar na multa de alteração
+  const currency = summary?.currency || 'USD';
+  const defaultChangePenalty = `${currency} 500 + diferença tarifária, se houver. Bilhete não reembolsável.`;
+  
   const option: ExtendedParsedOption = {
     label: routeLabel,
     paymentTerms: summary?.paymentTerms || defaultPaymentTerms,
@@ -919,8 +923,8 @@ function buildSingleOptionMultiStackedData(
     fares: faresForPdf,
     fareCategories: faresForPdf,
     baggage: parseBaggageString(summary?.baggage),
-    // Usar changePenalty do pricingResult se disponível, senão usar notes como fallback
-    changePenalty: pricingResult?.changePenalty || summary?.notes || 'USD 500 + diferença tarifária, se houver. Bilhete não reembolsável.'
+    // Usar changePenalty do pricingResult se disponível, senão usar moeda detectada
+    changePenalty: pricingResult?.changePenalty || summary?.notes || defaultChangePenalty
   };
 
   return buildMultiStackedData([option]);
