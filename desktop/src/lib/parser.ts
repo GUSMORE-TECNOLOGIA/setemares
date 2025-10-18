@@ -264,16 +264,33 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const pagtoLine = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim();
   const netNet = pnrText.match(/\bnet\s*[- ]?\s*net\b/i)?.[0]?.replace(/\s*-\s*/g, ' - ').trim();
   const parcelaMatch = pnrText.match(/\bparcela\s+\d+x\b/i)?.[0]?.trim() || pnrText.match(/\bparcelado\s+em\s+\d+x\b/i)?.[0]?.trim();
-  const combinedPayment = [netNet, parcelaMatch].filter(Boolean).join(' - ');
-  const paymentTerms = pagtoLine || (combinedPayment || (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.'));
-  // Parsing melhorado de bagagem: 2pc 32kg/exe-pri, 1pc 23kg, etc.
-  const baggageMatch = pnrText.match(/(\d+pc\s+\d+kg(?:\/[a-z\-]+)*)/i);
-  const baggage = baggageMatch?.[1]?.trim() || 'Conforme regra da tarifa';
-  const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
   
   // Detectar número de parcelas - formato: "pagto 10x" ou "parcela 4x"
   const parcelasMatch = pnrText.match(/(?:pagto|parcela(?:do)?)\s+(\d+)x/i);
   const numParcelas = parcelasMatch ? parseInt(parcelasMatch[1]) : undefined;
+  
+  // Função para sanitizar payment terms removendo "net net"
+  const sanitizePaymentTerms = (paymentLine: string, numParcelas: number): string => {
+    if (!paymentLine) return `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
+    
+    // Remover "net net" e manter apenas informação de parcelas
+    const cleanLine = paymentLine.replace(/\s*-\s*net\s*net\b/gi, '').trim();
+    
+    // Se contém informação de parcelas, usar ela
+    const parcelasMatch = cleanLine.match(/(\d+)x/i);
+    if (parcelasMatch) {
+      return `Em até ${parcelasMatch[1]}x no cartão de crédito. Taxas à vista.`;
+    }
+    
+    // Fallback para número de parcelas detectado
+    return `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
+  };
+  
+  const paymentTerms = pagtoLine ? sanitizePaymentTerms(pagtoLine, numParcelas || 4) : (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.');
+  // Parsing melhorado de bagagem: 2pc 32kg/exe-pri, 1pc 23kg, etc.
+  const baggageMatch = pnrText.match(/(\d+pc\s+\d+kg(?:\/[a-z\-]+)*)/i);
+  const baggage = baggageMatch?.[1]?.trim() || 'Conforme regra da tarifa';
+  const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
   
   // Detectar percentual de RAV - formato: "du 7%"
   const ravMatch = pnrText.match(/du\s+(\d+)%/i);

@@ -6,6 +6,8 @@ export interface PricingParams {
   taxasBase: number;
   ravPercent: number;
   fee: number;
+  incentivoPercent?: number;
+  changePenalty?: string;
 }
 
 export interface PricingResult {
@@ -13,6 +15,9 @@ export interface PricingResult {
   comissao: number;
   taxasExibidas: number;
   total: number;
+  incentivo?: number;
+  incentivoPercent?: number;
+  changePenalty?: string;
   numParcelas?: number;
 }
 
@@ -25,19 +30,23 @@ function q2(value: number): number {
 
 // Calcular totais baseado nas regras do backend
 export function computeTotals(params: PricingParams): PricingResult {
-  const { tarifa, taxasBase, ravPercent, fee } = params;
+  const { tarifa, taxasBase, ravPercent, fee, incentivoPercent = 0, changePenalty } = params;
 
   // Validar e converter para números, com fallback para 0
   const tarifaNum = Number(tarifa) || 0;
   const taxasBaseNum = Number(taxasBase) || 0;
   const ravPercentNum = Number(ravPercent) || 0;
   const feeNum = Number(fee) || 0;
+  const incentivoPercentNum = Number(incentivoPercent) || 0;
 
   // RAV = tarifa_base * (rav_percent/100)
   const rav = q2(tarifaNum * (ravPercentNum / 100));
 
-  // Comissão (lucro) = RAV + fee
-  const comissao = q2(rav + feeNum);
+  // Incentivo = tarifa_base * (incentivo_percent/100)
+  const incentivo = q2(tarifaNum * (incentivoPercentNum / 100));
+
+  // Comissão (lucro) = RAV + fee + incentivo
+  const comissao = q2(rav + feeNum + incentivo);
 
   // Taxas exibidas = taxas_base + Comissão
   const taxasExibidas = q2(taxasBaseNum + comissao);
@@ -49,7 +58,10 @@ export function computeTotals(params: PricingParams): PricingResult {
     rav,
     comissao,
     taxasExibidas,
-    total
+    total,
+    incentivo,
+    incentivoPercent: incentivoPercentNum,
+    changePenalty
   };
 }
 

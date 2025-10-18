@@ -68,6 +68,7 @@ export type ExtendedParsedOption = ParsedOption & {
   fareCategories?: ParsedFare[];
   baggage?: ParsedBaggage[];
   pricing?: ProfessionalPdfPricing[];
+  changePenalty?: string;
 };
 
 export interface BookingContextValue {

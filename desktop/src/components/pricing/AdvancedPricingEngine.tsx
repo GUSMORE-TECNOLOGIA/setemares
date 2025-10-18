@@ -41,13 +41,17 @@ export function AdvancedPricingEngine({
   const [globalConfig, setGlobalConfig] = useState({
     ravPercent,
     fee,
-    numParcelas: numParcelas || 4
+    numParcelas: numParcelas || 4,
+    incentivoPercent: 0,
+    changePenalty: 'USD 500 + diferença tarifária'
   });
   const [localParams, setLocalParams] = useState<PricingParams>({
     tarifa: 0,
     taxasBase: 0,
     ravPercent,
-    fee
+    fee,
+    incentivoPercent: 0,
+    changePenalty: 'USD 500 + diferença tarifária'
   });
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -112,7 +116,7 @@ export function AdvancedPricingEngine({
   };
 
   // Atualizar configuração global
-  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'numParcelas', value: number) => {
+  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'numParcelas' | 'incentivoPercent' | 'changePenalty', value: number | string) => {
     setGlobalConfig(prev => ({
       ...prev,
       [key]: value
@@ -145,9 +149,13 @@ export function AdvancedPricingEngine({
     onSave(updatedCategories);
     setHasChanges(false);
     
-    // Notificar mudança de pricing incluindo numParcelas
+    // Notificar mudança de pricing incluindo configuração global completa
     onPricingChange({
       ...currentResult,
+      ravPercent: globalConfig.ravPercent,
+      fee: globalConfig.fee,
+      incentivoPercent: globalConfig.incentivoPercent,
+      changePenalty: globalConfig.changePenalty,
       numParcelas: globalConfig.numParcelas
     });
   };
@@ -360,6 +368,40 @@ export function AdvancedPricingEngine({
                     Em até {globalConfig.numParcelas}x no cartão de crédito
                   </p>
                 </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Incentivo (%)
+                  </label>
+                  <Input
+                    type="number"
+                    value={globalConfig.incentivoPercent}
+                    onChange={(e) => handleGlobalConfigChange('incentivoPercent', parseFloat(e.target.value) || 0)}
+                    className="w-full"
+                    min={0}
+                    max={4}
+                    step={0.1}
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Percentual de incentivo (2-4%)
+                  </p>
+                </div>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-1">
+                    Multa de Alteração
+                  </label>
+                  <Input
+                    type="text"
+                    value={globalConfig.changePenalty}
+                    onChange={(e) => handleGlobalConfigChange('changePenalty', e.target.value)}
+                    className="w-full"
+                    placeholder="USD 500 + diferença tarifária"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">
+                    Texto exibido no PDF
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -368,11 +410,18 @@ export function AdvancedPricingEngine({
           <div className="bg-slate-800/50 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-4">Cálculos</h4>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">RAV ({globalConfig.ravPercent}%)</div>
                 <div className="text-lg font-bold text-green-400">
                   {formatCurrency(currentResult.rav)}
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="text-xs text-slate-400 mb-1">Incentivo ({globalConfig.incentivoPercent}%)</div>
+                <div className="text-lg font-bold text-blue-400">
+                  {formatCurrency(currentResult.incentivo || 0)}
                 </div>
               </div>
               

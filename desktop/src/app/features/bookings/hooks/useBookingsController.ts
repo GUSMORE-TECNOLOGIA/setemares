@@ -263,8 +263,8 @@ function buildMultiStackedData(options: ExtendedParsedOption[]): MultiStackedPdf
         baggage: (option.baggage ?? [])
           .map((bag) => bag.fareClass ? `${bag.pieces}pc ${bag.pieceKg}kg/${bag.fareClass}` : `${bag.pieces}pc ${bag.pieceKg}kg`)
           .join(', ') || '2pc 32kg',
-        payment: option.paymentTerms || '5x - net net',
-        penalty: option.notes || 'USD 500 + diferenca tarifaria, se houver. Bilhete nao reembolsavel.',
+        payment: option.paymentTerms || 'Em até 4x no cartão de crédito. Taxas à vista.',
+        penalty: option.changePenalty || option.notes || 'USD 500 + diferença tarifária, se houver. Bilhete não reembolsável.',
         refundable: 'Bilhete nao reembolsavel.'
       }
     }))
@@ -891,7 +891,9 @@ function buildSingleOptionMultiStackedData(
     segments,
     fares: faresForPdf,
     fareCategories: faresForPdf,
-    baggage: parseBaggageString(summary?.baggage)
+    baggage: parseBaggageString(summary?.baggage),
+    // Usar changePenalty do pricingResult se disponível, senão usar notes como fallback
+    changePenalty: pricingResult?.changePenalty || summary?.notes || 'USD 500 + diferença tarifária, se houver. Bilhete não reembolsável.'
   };
 
   return buildMultiStackedData([option]);
