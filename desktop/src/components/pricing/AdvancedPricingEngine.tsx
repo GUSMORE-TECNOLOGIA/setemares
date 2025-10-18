@@ -61,7 +61,9 @@ export function AdvancedPricingEngine({
     setGlobalConfig(prevConfig => ({
       ravPercent,
       fee,
-      numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4)
+      numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4),
+      incentivoPercent: prevConfig.incentivoPercent !== undefined ? prevConfig.incentivoPercent : 0,
+      changePenalty: prevConfig.changePenalty !== undefined ? prevConfig.changePenalty : 'USD 500 + diferença tarifária'
     }));
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
@@ -89,7 +91,11 @@ export function AdvancedPricingEngine({
   }, [currentCategoryIndex, fareCategories, globalConfig]);
 
   // Calcular resultado atual
-  const currentResult = computeTotals(localParams);
+  const currentResult = computeTotals({
+    ...localParams,
+    incentivoPercent: globalConfig.incentivoPercent,
+    changePenalty: globalConfig.changePenalty
+  });
   const totalCategories = fareCategories.length;
   const currentCategory = fareCategories[currentCategoryIndex];
 
