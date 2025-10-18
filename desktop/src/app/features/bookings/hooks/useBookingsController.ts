@@ -3,6 +3,27 @@ import { parsePNR, decodeItinerary } from "@/lib/parser";
 import type { DecodedItinerary } from "@/lib/parser";
 import { computeTotals } from "@/lib/pricing";
 import type { PricingResult } from "@/lib/pricing";
+
+// Função para mapear franquia de bagagem por classe
+const getBaggageAllowanceByClass = (fareClass: string): string => {
+  const label = fareClass.toLowerCase();
+  
+  if (label.includes('exe') || label.includes('executiva') || label.includes('business')) {
+    return '2pc 32kg';
+  } else if (label.includes('pre') || label.includes('premium')) {
+    return '2pc 23kg';
+  } else if (label.includes('eco') || label.includes('economica') || label.includes('economy')) {
+    return '1pc 23kg';
+  }
+  
+  // Fallback baseado no tipo de passageiro
+  if (label.includes('chd') || label.includes('child')) {
+    return '1pc 23kg';
+  }
+  
+  // Default para adulto
+  return '1pc 23kg';
+};
 import { downloadMultiPdf } from "@/lib/downloadMultiPdf";
 import type { MultiStackedPdfData } from "@/lib/MultiStackedPdfDocument";
 import type { ParsedBaggage, ParsedEmail, ParsedFare, ParsedSegment } from "@/lib/types/email-parser";
@@ -264,12 +285,32 @@ function buildMultiStackedData(options: ExtendedParsedOption[]): MultiStackedPdf
       }),
       fareDetails: ((option.fareCategories || option.fares || []) as ParsedFare[])
         .filter((fare) => (fare as { includeInPdf?: boolean }).includeInPdf !== false)
-        .map((fare) => ({
-          classLabel: `${fare.fareClass || 'N/A'}${fare.paxType && fare.paxType !== 'ADT' ? ` (${fare.paxType})` : ''}`,
-          baseFare: Number(fare.baseFare ?? 0),
-          taxes: Number(fare.baseTaxes ?? 0), // Já ajustado com RAV + incentivo
-          total: Number(fare.baseFare ?? 0) + Number(fare.baseTaxes ?? 0) // Total já calculado corretamente
-        })),
+        .map((fare) => {
+          const baseFare = Number(fare.baseFare ?? 0);
+          const baseTaxes = Number(fare.baseTaxes ?? 0);
+          
+          // Calcular incentivo e RAV para esta cabine específica
+          const incentivoPercent = option.pricingResult?.incentivoPercent || 0;
+          const ravPercent = option.pricingResult?.ravPercent || 10;
+          const fee = option.pricingResult?.fee || 0;
+          
+          const totals = computeTotals({
+            tarifa: baseFare,
+            taxasBase: baseTaxes,
+            ravPercent,
+            fee,
+            incentivoPercent,
+            changePenalty: option.pricingResult?.changePenalty
+          });
+          
+          return {
+            classLabel: `${fare.fareClass || 'N/A'}${fare.paxType && fare.paxType !== 'ADT' ? ` (${fare.paxType})` : ''}`,
+            baseFare,
+            taxes: totals.taxasExibidas, // Taxas com RAV + incentivo aplicados
+            total: baseFare + totals.taxasExibidas, // Total com incentivo
+            baggage: getBaggageAllowanceByClass(fare.fareClass || 'N/A') // Bagagem específica da classe
+          };
+        }),
       footer: {
         baggage: (option.baggage ?? [])
           .map((bag) => bag.fareClass ? `${bag.pieces}pc ${bag.pieceKg}kg/${bag.fareClass}` : `${bag.pieces}pc ${bag.pieceKg}kg`)

@@ -531,7 +531,7 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
-                    <Text style={S.fareBaggage}>{getBaggageAllowance(fare.classLabel)}</Text>
+                    <Text style={S.fareBaggage}>{fare.baggage || getBaggageAllowance(fare.classLabel)}</Text>
                   </View>
                 </View>
               ))}

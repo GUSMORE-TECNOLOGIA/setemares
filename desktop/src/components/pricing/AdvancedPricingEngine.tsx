@@ -71,7 +71,9 @@ export function AdvancedPricingEngine({
         tarifa: Number(currentCategory.baseFare) || 0,
         taxasBase: Number(currentCategory.baseTaxes) || 0,
         ravPercent: Number(ravPercent) || 0,
-        fee: Number(fee) || 0
+        fee: Number(fee) || 0,
+        incentivoPercent: globalConfig.incentivoPercent,
+        changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
       });
     }
   }, [ravPercent, fee, fareCategories, currentCategoryIndex]);
@@ -85,17 +87,15 @@ export function AdvancedPricingEngine({
         tarifa: Number(currentCategory.baseFare) || 0,
         taxasBase: Number(currentCategory.baseTaxes) || 0,
         ravPercent: Number(globalConfig.ravPercent) || 0,
-        fee: Number(globalConfig.fee) || 0
+        fee: Number(globalConfig.fee) || 0,
+        incentivoPercent: globalConfig.incentivoPercent,
+        changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
       });
     }
   }, [currentCategoryIndex, fareCategories, globalConfig]);
 
   // Calcular resultado atual
-  const currentResult = computeTotals({
-    ...localParams,
-    incentivoPercent: globalConfig.incentivoPercent,
-    changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
-  });
+  const currentResult = computeTotals(localParams);
   const totalCategories = fareCategories.length;
   const currentCategory = fareCategories[currentCategoryIndex];
 
