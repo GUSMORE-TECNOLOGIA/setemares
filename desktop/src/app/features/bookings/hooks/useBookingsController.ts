@@ -231,11 +231,20 @@ function buildMultiStackedData(options: ExtendedParsedOption[]): MultiStackedPdf
   const headerSubtitle = getPrimaryCarrier(primaryOption);
   const headerDepartureLabel = getDepartureLabel(primaryOption);
 
+  // Gerar data da cotação no formato brasileiro
+  const currentDate = new Date();
+  const quoteDate = currentDate.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+
   return {
     header: {
       title: 'COTAÇÃO DE AÉREOS',
       subtitle: headerSubtitle,
       departureLabel: headerDepartureLabel,
+      quoteDate: `Data da Cotação: ${quoteDate}`,
       logoSrc: '/logo-sete-mares.jpg'
     },
     options: options.map((option, index) => ({

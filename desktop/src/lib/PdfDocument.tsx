@@ -192,7 +192,7 @@ export default function PdfDocument({ data }: { data: PdfData }) {
             <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
             <Text style={S.headerLocation}>{data.header.title}</Text>
             <View style={S.headerSeparator} />
-            <Text style={S.headerSubtitle}>Melhor valor com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
+            <Text style={S.headerSubtitle}>Opção com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
             <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
           </View>
                 <View style={S.headerLogo}>

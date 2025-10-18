@@ -4,8 +4,9 @@ import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/render
 export type MultiStackedPdfData = {
   header: { 
     title: string;           // "COTAÇÃO Lisbon, Portugal"
-    subtitle: string;        // "Melhor valor com a TAP Air Portugal"
+    subtitle: string;        // "Opção com a TAP Air Portugal"
     departureLabel: string;  // "Saída: 22 de Setembro"
+    quoteDate: string;       // "Data da Cotação: 18 de Janeiro de 2025"
     logoSrc?: string;
   };
   metadata?: {
@@ -86,6 +87,7 @@ const S = StyleSheet.create({
   headerSubtitle: { fontSize: 10, color: "#374151", marginBottom: 2 },
   headerCompany: { fontSize: 10, fontWeight: 700, color: "#111827", marginBottom: 4 },
   headerDeparture: { fontSize: 9, color: "#374151", marginBottom: 2 },
+  headerQuoteDate: { fontSize: 9, color: "#374151", marginBottom: 2 },
   headerDate: { fontSize: 9, fontWeight: 700, color: "#111827" },
   
   // Metadados da cotação
@@ -747,8 +749,9 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                         Cliente: {data.metadata?.family || 'A definir'}
                       </Text>
                       <View style={S.headerSeparator} />
-                      <Text style={S.headerSubtitle}>Melhor valor com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
+                      <Text style={S.headerSubtitle}>Opção com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
                       <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
+                      <Text style={S.headerQuoteDate}>Data da Cotação: <Text style={S.headerDate}>{data.header.quoteDate}</Text></Text>
                     </View>
                     <View style={S.headerLogo}>
                       {data.header.logoSrc ? (
