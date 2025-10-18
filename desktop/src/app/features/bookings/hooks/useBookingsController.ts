@@ -108,7 +108,9 @@ function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number): P
     tarifa: totalBaseFare,
     taxasBase: totalBaseTaxes,
     ravPercent: ravPercent || 10, // Usar RAV detectado ou padrão 10%
-    fee: 0
+    fee: 0,
+    incentivoPercent: 0,
+    changePenalty: 'USD 500 + diferença tarifária'
   });
 }
 function parseBaggageString(baggage?: string): ParsedBaggage[] | undefined {
@@ -360,7 +362,14 @@ export function useBookingsController(): BookingControllerReturn {
     const totalBaseFare = categories.reduce((sum, category) => sum + (category?.baseFare ?? 0), 0);
     const totalBaseTaxes = categories.reduce((sum, category) => sum + (category?.baseTaxes ?? 0), 0);
     
-    const result = computeTotals({ tarifa: totalBaseFare, taxasBase: totalBaseTaxes, ravPercent: simplePnrData?.ravPercent || 10, fee: 0 });
+    const result = computeTotals({ 
+      tarifa: totalBaseFare, 
+      taxasBase: totalBaseTaxes, 
+      ravPercent: simplePnrData?.ravPercent || 10, 
+      fee: 0,
+      incentivoPercent: 0,
+      changePenalty: 'USD 500 + diferença tarifária'
+    });
     setPricingResult(result);
     setResetTrigger((prev) => prev + 1);
   }, [simplePnrData?.ravPercent]);
@@ -652,7 +661,14 @@ export function useBookingsController(): BookingControllerReturn {
       const adjusted = categories.map((fare) => {
         const tarifa = Number(fare.baseFare ?? 0);
         const taxasBase = Number(fare.baseTaxes ?? 0);
-        const totals = computeTotals({ tarifa, taxasBase, ravPercent: ravPercentFromEngine, fee: 0, incentivo: 0 });
+        const totals = computeTotals({ 
+          tarifa, 
+          taxasBase, 
+          ravPercent: ravPercentFromEngine, 
+          fee: 0, 
+          incentivoPercent: 0,
+          changePenalty: 'USD 500 + diferença tarifária'
+        });
         return {
           ...fare,
           baseFare: tarifa,
@@ -833,8 +849,10 @@ function buildSingleOptionMultiStackedData(
       const individualPricing = computeTotals({
         tarifa: baseFare,
         taxasBase: baseTaxes,
-        ravPercent: summary?.ravPercent || 10, // Usar RAV detectado ou padrão 10%
-        fee: 0
+        ravPercent: pricingResult.ravPercent || summary?.ravPercent || 10,
+        fee: pricingResult.fee || 0,
+        incentivoPercent: pricingResult.incentivoPercent || 0,
+        changePenalty: pricingResult.changePenalty
       });
       adjustedTaxes = individualPricing.taxasExibidas;
       
