@@ -36,9 +36,14 @@ export function CompactPricingEngine({
   };
 
   // Calcular total básico para exibição compacta
-  const total = initialParams.tarifa + initialParams.taxasBase;
-  const rav = (total * initialParams.ravPercent) / 100;
-  const totalWithRav = total + rav + initialParams.fee + initialParams.incentivo;
+  const tarifa = Number(initialParams.tarifa) || 0;
+  const taxasBase = Number(initialParams.taxasBase) || 0;
+  const ravPercent = Number(initialParams.ravPercent) || 0;
+  const fee = Number(initialParams.fee) || 0;
+  
+  const total = tarifa + taxasBase;
+  const rav = (total * ravPercent) / 100;
+  const totalWithRav = total + rav + fee;
 
   return (
     <div className="glass-card p-4">
@@ -59,7 +64,7 @@ export function CompactPricingEngine({
           {/* Valor Total */}
           <div className="text-right">
             <div className="text-2xl font-bold text-green-400">
-              USD {totalWithRav.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              USD {(isNaN(totalWithRav) ? 0 : totalWithRav).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-slate-400">Total por pessoa</div>
           </div>

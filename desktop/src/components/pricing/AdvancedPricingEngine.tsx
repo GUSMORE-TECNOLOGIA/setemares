@@ -62,10 +62,10 @@ export function AdvancedPricingEngine({
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
       setLocalParams({
-        tarifa: currentCategory.baseFare,
-        taxasBase: currentCategory.baseTaxes,
-        ravPercent,
-        fee
+        tarifa: Number(currentCategory.baseFare) || 0,
+        taxasBase: Number(currentCategory.baseTaxes) || 0,
+        ravPercent: Number(ravPercent) || 0,
+        fee: Number(fee) || 0
       });
     }
   }, [ravPercent, fee, fareCategories, currentCategoryIndex]);
@@ -76,10 +76,10 @@ export function AdvancedPricingEngine({
       const currentCategory = fareCategories[currentCategoryIndex];
       
       setLocalParams({
-        tarifa: currentCategory.baseFare,
-        taxasBase: currentCategory.baseTaxes,
-        ravPercent: globalConfig.ravPercent,
-        fee: globalConfig.fee
+        tarifa: Number(currentCategory.baseFare) || 0,
+        taxasBase: Number(currentCategory.baseTaxes) || 0,
+        ravPercent: Number(globalConfig.ravPercent) || 0,
+        fee: Number(globalConfig.fee) || 0
       });
     }
   }, [currentCategoryIndex, fareCategories, globalConfig]);
@@ -155,16 +155,18 @@ export function AdvancedPricingEngine({
   // Calcular total para exibição compacta (primeira categoria)
   const compactTotal = useMemo(() => {
     if (fareCategories.length > 0) {
-      const baseFare = localParams.tarifa || fareCategories[0].baseFare;
-      const baseTaxes = localParams.taxasBase || fareCategories[0].baseTaxes;
+      const baseFare = Number(localParams.tarifa || fareCategories[0].baseFare) || 0;
+      const baseTaxes = Number(localParams.taxasBase || fareCategories[0].baseTaxes) || 0;
+      const ravPercent = Number(localParams.ravPercent) || 0;
+      const fee = Number(localParams.fee) || 0;
       
       // Usar a mesma lógica da função computeTotals
-      const rav = Math.round(baseFare * (localParams.ravPercent / 100) * 100) / 100;
-      const comissao = Math.round((rav + localParams.fee + localParams.incentivo) * 100) / 100;
+      const rav = Math.round(baseFare * (ravPercent / 100) * 100) / 100;
+      const comissao = Math.round((rav + fee) * 100) / 100;
       const taxasExibidas = Math.round((baseTaxes + comissao) * 100) / 100;
       const total = Math.round((baseFare + taxasExibidas) * 100) / 100;
       
-      return total;
+      return isNaN(total) ? 0 : total;
     }
     return 0;
   }, [fareCategories, localParams]);

@@ -18,24 +18,32 @@ export interface PricingResult {
 
 // Função para arredondar para 2 casas decimais
 function q2(value: number): number {
-  return Math.round(value * 100) / 100;
+  const num = Number(value);
+  if (isNaN(num)) return 0;
+  return Math.round(num * 100) / 100;
 }
 
 // Calcular totais baseado nas regras do backend
 export function computeTotals(params: PricingParams): PricingResult {
   const { tarifa, taxasBase, ravPercent, fee } = params;
 
+  // Validar e converter para números, com fallback para 0
+  const tarifaNum = Number(tarifa) || 0;
+  const taxasBaseNum = Number(taxasBase) || 0;
+  const ravPercentNum = Number(ravPercent) || 0;
+  const feeNum = Number(fee) || 0;
+
   // RAV = tarifa_base * (rav_percent/100)
-  const rav = q2(tarifa * (ravPercent / 100));
+  const rav = q2(tarifaNum * (ravPercentNum / 100));
 
   // Comissão (lucro) = RAV + fee
-  const comissao = q2(rav + fee);
+  const comissao = q2(rav + feeNum);
 
   // Taxas exibidas = taxas_base + Comissão
-  const taxasExibidas = q2(taxasBase + comissao);
+  const taxasExibidas = q2(taxasBaseNum + comissao);
 
   // Total = tarifa_base + taxas_exibidas
-  const total = q2(tarifa + taxasExibidas);
+  const total = q2(tarifaNum + taxasExibidas);
 
   return {
     rav,

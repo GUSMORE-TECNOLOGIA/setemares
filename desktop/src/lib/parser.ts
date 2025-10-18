@@ -197,9 +197,34 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
           taxas: taxasValue
         }];
       } else {
-        // Último fallback - método antigo
-        const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
-        const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
+        // NOVO: Suporte para formato FARE: e TAXES:
+        const fareTaxesLines = pnrText.match(/FARE:\s+(\w+)\s+([\d.,]+)\s*\n\s*TAXES:\s+([\d.,]+)/gi);
+        if (fareTaxesLines && fareTaxesLines.length > 0) {
+          fares = fareTaxesLines.map(line => {
+            const match = line.match(/FARE:\s+(\w+)\s+([\d.,]+)\s*\n\s*TAXES:\s+([\d.,]+)/i);
+            if (match) {
+              const category = match[1]?.toLowerCase() === 'exe' ? 'Exe' : 
+                              match[1]?.toLowerCase() === 'eco' ? 'Eco' :
+                              match[1]?.toLowerCase() === 'pre' ? 'Pre' : 
+                              match[1]?.toUpperCase() || 'Tarifa';
+              const tarifaValue = match[2]?.replace(',', '.') || '0';
+              const taxasValue = match[3]?.replace(',', '.') || '0';
+              
+              console.log(`🔍 Tarifa FARE/TAXES detectada: ${category} - USD ${tarifaValue} + USD ${taxasValue}`);
+              
+              return {
+                category,
+                tarifa: tarifaValue,
+                taxas: taxasValue,
+                paxType: 'ADT'
+              };
+            }
+            return null;
+          }).filter(fare => fare !== null) as Array<{category: string; tarifa: string; taxas: string; paxType?: string}>;
+        } else {
+          // Último fallback - método antigo
+          const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
+          const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
         
         fares = tarifaMatches.map((tarifa, i) => {
           const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
@@ -227,6 +252,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
             taxas: taxasValue,
           };
         });
+        }
       }
     }
   }

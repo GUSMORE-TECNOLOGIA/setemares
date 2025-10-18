@@ -829,11 +829,11 @@ function buildSingleOptionMultiStackedData(
       ravPercent: summary?.ravPercent
     });
     
-    if (pricingResult && summary?.ravPercent) {
+    if (pricingResult) {
       const individualPricing = computeTotals({
         tarifa: baseFare,
         taxasBase: baseTaxes,
-        ravPercent: summary.ravPercent || 10, // Usar RAV detectado ou padrão 10%
+        ravPercent: summary?.ravPercent || 10, // Usar RAV detectado ou padrão 10%
         fee: 0
       });
       adjustedTaxes = individualPricing.taxasExibidas;
@@ -844,11 +844,9 @@ function buildSingleOptionMultiStackedData(
         baseTaxes,
         adjustedTaxes,
         total: baseFare + adjustedTaxes,
-        individualPricing
+        individualPricing,
+        ravPercent: summary?.ravPercent || 10
       });
-    } else if (pricingResult && all.length === 1 && index === 0) {
-      // Fallback para tarifa única
-      adjustedTaxes = Math.max(pricingResult.total - baseFare, 0);
     }
 
     return {
