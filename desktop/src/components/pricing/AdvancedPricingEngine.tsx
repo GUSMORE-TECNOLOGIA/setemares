@@ -43,7 +43,7 @@ export function AdvancedPricingEngine({
     fee,
     numParcelas: numParcelas || 4,
     incentivoPercent: 0,
-    changePenalty: 'USD 500 + diferença tarifária'
+    changePenaltyAmount: 500
   });
   const [localParams, setLocalParams] = useState<PricingParams>({
     tarifa: 0,
@@ -63,7 +63,7 @@ export function AdvancedPricingEngine({
       fee,
       numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4),
       incentivoPercent: prevConfig.incentivoPercent !== undefined ? prevConfig.incentivoPercent : 0,
-      changePenalty: prevConfig.changePenalty !== undefined ? prevConfig.changePenalty : 'USD 500 + diferença tarifária'
+      changePenaltyAmount: prevConfig.changePenaltyAmount !== undefined ? prevConfig.changePenaltyAmount : 500
     }));
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
@@ -94,7 +94,7 @@ export function AdvancedPricingEngine({
   const currentResult = computeTotals({
     ...localParams,
     incentivoPercent: globalConfig.incentivoPercent,
-    changePenalty: globalConfig.changePenalty
+    changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
   });
   const totalCategories = fareCategories.length;
   const currentCategory = fareCategories[currentCategoryIndex];
@@ -122,7 +122,7 @@ export function AdvancedPricingEngine({
   };
 
   // Atualizar configuração global
-  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'numParcelas' | 'incentivoPercent' | 'changePenalty', value: number | string) => {
+  const handleGlobalConfigChange = (key: 'ravPercent' | 'fee' | 'numParcelas' | 'incentivoPercent' | 'changePenaltyAmount', value: number | string) => {
     setGlobalConfig(prev => ({
       ...prev,
       [key]: value
@@ -161,7 +161,7 @@ export function AdvancedPricingEngine({
       ravPercent: globalConfig.ravPercent,
       fee: globalConfig.fee,
       incentivoPercent: globalConfig.incentivoPercent,
-      changePenalty: globalConfig.changePenalty,
+      changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`,
       numParcelas: globalConfig.numParcelas
     });
   };
@@ -395,17 +395,19 @@ export function AdvancedPricingEngine({
                 
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
-                    Multa de Alteração
+                    Multa de Alteração (USD)
                   </label>
                   <Input
-                    type="text"
-                    value={globalConfig.changePenalty}
-                    onChange={(e) => handleGlobalConfigChange('changePenalty', e.target.value)}
+                    type="number"
+                    value={globalConfig.changePenaltyAmount}
+                    onChange={(e) => handleGlobalConfigChange('changePenaltyAmount', parseFloat(e.target.value) || 0)}
                     className="w-full"
-                    placeholder="USD 500 + diferença tarifária"
+                    placeholder="500"
+                    min={0}
+                    step={50}
                   />
                   <p className="text-xs text-slate-500 mt-1">
-                    Texto exibido no PDF
+                    Valor em USD (ex: 500 = USD 500 + diferença tarifária)
                   </p>
                 </div>
               </div>
