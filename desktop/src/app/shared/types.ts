@@ -24,6 +24,8 @@ export interface SimpleBookingSummary {
   notes: string;
   numParcelas?: number;
   ravPercent?: number;
+  incentivoPercent?: number;
+  feeUSD?: number; // Fee em USD detectado no PNR
 }
 
 export interface ProfessionalPdfPricing {
@@ -69,6 +71,7 @@ export type ExtendedParsedOption = ParsedOption & {
   baggage?: ParsedBaggage[];
   pricing?: ProfessionalPdfPricing[];
   changePenalty?: string;
+  pricingResult?: PricingResult; // Resultado do cálculo de preços para esta opção
 };
 
 export interface BookingContextValue {

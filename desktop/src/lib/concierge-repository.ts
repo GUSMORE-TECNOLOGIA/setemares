@@ -1,11 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { logger } from './logger';
+import { SUPABASE_CONFIG } from './config';
 
-// Inicializar cliente Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://dgverpbhxtslmfrrcwwj.supabase.co";
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRndmVycGJoeHRzbG1mcnJjd3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDY0OTEsImV4cCI6MjA3Mzg4MjQ5MX0.q1OogIBKY4GIzc0wwLnFfzq3lZt3JMHAj0f832kqtbs";
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Inicializar cliente Supabase com configuração centralizada
+const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 export interface ConciergeReportData {
   agent_name?: string;

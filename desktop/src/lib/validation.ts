@@ -62,7 +62,12 @@ export class QuoteValidator {
       const landingDateTime = this.parseDateTime(flight.landingDate, flight.landingTime);
       
       if (departureDateTime >= landingDateTime) {
-        warnings.push('Data/horário de chegada deve ser posterior à partida');
+        // Se for no mesmo dia, é um erro. Se for em dias diferentes mas partida >= chegada, também é erro
+        if (flight.departureDate === flight.landingDate) {
+          errors.push('Horário de chegada deve ser posterior ao horário de partida no mesmo dia');
+        } else {
+          errors.push('Data/horário de chegada deve ser posterior à partida');
+        }
       }
     }
     
@@ -111,19 +116,38 @@ export class QuoteValidator {
   }
   
   private static isValidDate(dateStr: string): boolean {
-    // Formato esperado: DD/MM/AAAA
-    const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-    const match = dateStr.match(regex);
+    // Aceitar ambos os formatos: DD/MM/AAAA ou YYYY-MM-DD
+    const regexDDMM = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const regexYYYYMM = /^(\d{4})-(\d{2})-(\d{2})$/;
     
-    if (!match) return false;
+    let match: RegExpMatchArray | null = null;
+    let year: string = '';
+    let month: string = '';
+    let day: string = '';
     
-    const [, day, month, year] = match;
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    if (regexDDMM.test(dateStr)) {
+      match = dateStr.match(regexDDMM);
+      if (match) {
+        [, day, month, year] = match;
+      }
+    } else if (regexYYYYMM.test(dateStr)) {
+      match = dateStr.match(regexYYYYMM);
+      if (match) {
+        [, year, month, day] = match;
+      }
+    }
+    
+    if (!match || !year || !month || !day) return false;
+    
+    const parsedYear = parseInt(year, 10);
+    const parsedMonth = parseInt(month, 10);
+    const parsedDay = parseInt(day, 10);
+    const date = new Date(parsedYear, parsedMonth - 1, parsedDay);
     
     // Verificar se a data é válida
-    return date.getFullYear() === parseInt(year) &&
-           date.getMonth() === parseInt(month) - 1 &&
-           date.getDate() === parseInt(day);
+    return date.getFullYear() === parsedYear &&
+           date.getMonth() === parsedMonth - 1 &&
+           date.getDate() === parsedDay;
   }
   
   private static isValidTime(timeStr: string): boolean {
@@ -146,7 +170,17 @@ export class QuoteValidator {
   }
   
   private static parseDateTime(dateStr: string, timeStr: string): Date {
-    const [day, month, year] = dateStr.split('/').map(Number);
+    let day: number, month: number, year: number;
+    
+    // Aceitar ambos os formatos: DD/MM/AAAA ou YYYY-MM-DD
+    if (dateStr.includes('/')) {
+      [day, month, year] = dateStr.split('/').map(Number);
+    } else if (dateStr.includes('-')) {
+      [year, month, day] = dateStr.split('-').map(Number);
+    } else {
+      throw new Error(`Formato de data inválido: ${dateStr}`);
+    }
+    
     const [hours, minutes] = timeStr.split(':').map(Number);
     
     return new Date(year, month - 1, day, hours, minutes);

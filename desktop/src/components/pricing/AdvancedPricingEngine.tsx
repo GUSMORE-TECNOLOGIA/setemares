@@ -22,6 +22,7 @@ interface AdvancedPricingEngineProps {
   resetTrigger: number;
   ravPercent?: number;
   fee?: number;
+  incentivoPercent?: number;
   numParcelas?: number;
 }
 
@@ -34,6 +35,7 @@ export function AdvancedPricingEngine({
   resetTrigger,
   ravPercent = 10,
   fee = 0,
+  incentivoPercent = 0,
   numParcelas
 }: AdvancedPricingEngineProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
@@ -57,26 +59,28 @@ export function AdvancedPricingEngine({
 
   // Sincronizar quando props mudarem
   useEffect(() => {
-    // Só atualizar numParcelas se não foi editado manualmente (manter valor atual se já foi modificado)
+    // Atualizar configuração global com valores das props
     setGlobalConfig(prevConfig => ({
-      ravPercent,
-      fee,
+      ravPercent: ravPercent || prevConfig.ravPercent || 10,
+      fee: fee || prevConfig.fee || 0,
       numParcelas: prevConfig.numParcelas !== undefined ? prevConfig.numParcelas : (numParcelas || 4),
-      incentivoPercent: prevConfig.incentivoPercent !== undefined ? prevConfig.incentivoPercent : 0,
+      incentivoPercent: prevConfig.incentivoPercent !== undefined ? prevConfig.incentivoPercent : (incentivoPercent || 0),
       changePenaltyAmount: prevConfig.changePenaltyAmount !== undefined ? prevConfig.changePenaltyAmount : 500
     }));
+    
+    // Atualizar parâmetros locais quando mudar de categoria ou quando fareCategories mudar
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
       setLocalParams({
         tarifa: Number(currentCategory.baseFare) || 0,
         taxasBase: Number(currentCategory.baseTaxes) || 0,
-        ravPercent: Number(ravPercent) || 0,
+        ravPercent: Number(ravPercent) || 10,
         fee: Number(fee) || 0,
-        incentivoPercent: globalConfig.incentivoPercent,
+        incentivoPercent: Number(incentivoPercent) || 0,
         changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
       });
     }
-  }, [ravPercent, fee, fareCategories, currentCategoryIndex]);
+  }, [ravPercent, fee, incentivoPercent, fareCategories, currentCategoryIndex, numParcelas]);
 
   // Atualizar parâmetros locais quando mudar de categoria
   useEffect(() => {
@@ -86,9 +90,9 @@ export function AdvancedPricingEngine({
       setLocalParams({
         tarifa: Number(currentCategory.baseFare) || 0,
         taxasBase: Number(currentCategory.baseTaxes) || 0,
-        ravPercent: Number(globalConfig.ravPercent) || 0,
+        ravPercent: Number(globalConfig.ravPercent) || 10,
         fee: Number(globalConfig.fee) || 0,
-        incentivoPercent: globalConfig.incentivoPercent,
+        incentivoPercent: Number(globalConfig.incentivoPercent) || 0,
         changePenalty: `USD ${globalConfig.changePenaltyAmount} + diferença tarifária, se houver. Bilhete não reembolsável.`
       });
     }

@@ -155,7 +155,7 @@ export function AirlinesCatalog() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         // Mostrar erros de validação
-        const firstError = error.errors[0];
+        const firstError = error.issues[0];
         alert(`Erro de validação: ${firstError.message}`);
       } else {
         console.error('Erro ao salvar companhia:', error);
@@ -179,7 +179,7 @@ export function AirlinesCatalog() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         const errors: Record<string, string> = {};
-        error.errors.forEach((err) => {
+        error.issues.forEach((err) => {
           if (err.path[0]) {
             errors[err.path[0] as string] = err.message;
           }

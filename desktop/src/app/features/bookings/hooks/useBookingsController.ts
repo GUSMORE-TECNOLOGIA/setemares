@@ -3,30 +3,9 @@ import { parsePNR, decodeItinerary } from "@/lib/parser";
 import type { DecodedItinerary } from "@/lib/parser";
 import { computeTotals } from "@/lib/pricing";
 import type { PricingResult } from "@/lib/pricing";
-
-// Função para mapear franquia de bagagem por classe
-const getBaggageAllowanceByClass = (fareClass: string): string => {
-  const label = fareClass.toLowerCase();
-  
-  if (label.includes('exe') || label.includes('executiva') || label.includes('business')) {
-    return '2pc 32kg';
-  } else if (label.includes('pre') || label.includes('premium')) {
-    return '2pc 23kg';
-  } else if (label.includes('eco') || label.includes('economica') || label.includes('economy')) {
-    return '1pc 23kg';
-  }
-  
-  // Fallback baseado no tipo de passageiro
-  if (label.includes('chd') || label.includes('child')) {
-    return '1pc 23kg';
-  }
-  
-  // Default para adulto
-  return '1pc 23kg';
-};
 import { downloadMultiPdf } from "@/lib/downloadMultiPdf";
 import type { MultiStackedPdfData } from "@/lib/MultiStackedPdfDocument";
-import type { ParsedBaggage, ParsedEmail, ParsedFare, ParsedSegment } from "@/lib/types/email-parser";
+import type { ParsedEmail, ParsedFare, ParsedSegment } from "@/lib/types/email-parser";
 import { QuoteValidator } from "@/lib/validation";
 import { healthMonitor } from "@/lib/health-monitor";
 import { logger } from "@/lib/logger";
@@ -37,21 +16,15 @@ import type {
   ExtendedParsedOption,
   SimpleBookingSummary
 } from "../../../shared/types";
+// Importar funções auxiliares dos novos módulos
+import { 
+  buildSimpleSummary, 
+  isComplexPnr as checkComplexPnr
+} from "../utils/parsing-helpers";
+import { mapPricingResult } from "../utils/pricing-helpers";
+import { buildMultiStackedData, buildSingleOptionMultiStackedData } from "../utils/pdf-builders";
 
 const SAMPLE_PNR = `AF 459 14APR GRUCDG HS2 1915 #1115\nAF 274 18APR CDGHND HS2 2200 #1830\nAF 187 05MAY HNDCDG HS2 0905 1640\nAF 454 07MAY CDGGRU HS2 2330 #0615\n\nTARIFA USD 8916.00 + TXS USD 564.00 *Exe\n\npagto 4x - comissao 7%\n\nTroca e reembolsa sem multa\n2pc 23kg`;
-
-function isComplexPnr(text: string): boolean {
-  // PNR complexo é quando há múltiplas OPÇÕES
-  // Suporta diferentes separadores: ==, --, ---, +, OU
-  const lines = text.split('\n').map(l => l.trim());
-  
-  return lines.some(line => 
-    line.match(/^={2,}$/) ||      // Linhas com apenas ==
-    line.match(/^-{2,}$/) ||      // Linhas com apenas -- ou ---
-    line.match(/^OU$/i) ||        // Linha com apenas "OU"
-    line === '+'                   // Linha com apenas +
-  );
-}
 
 function mapParsedEmailToExtendedOptions(parsedEmail: ParsedEmail): ExtendedParsedOption[] {
   return parsedEmail.options.map((option) => ({
@@ -84,117 +57,39 @@ function toBookingFlights(itinerary?: DecodedItinerary, optionLabel?: string): B
   });
 }
 
-function buildSimpleSummary(parsed: Awaited<ReturnType<typeof parsePNR>>): SimpleBookingSummary | null {
-  if (!parsed) {
-    return null;
-  }
+// Funções movidas para módulos auxiliares:
+// - buildSimpleSummary -> parsing-helpers.ts
+// - mapPricingResult -> pricing-helpers.ts  
+// - parseBaggageString -> parsing-helpers.ts
+// - formatDateTimeParts -> parsing-helpers.ts
 
-  const segments = Array.isArray(parsed.segments) ? (parsed.segments as ParsedSegment[]) : [];
-  const fares = (parsed.fares || []).map((fare) => ({
-    fareClass: fare.category,
-    paxType: (fare.paxType as "ADT" | "CHD" | "INF") || "ADT",
-    baseFare: Number(fare.tarifa.replace(/,/g, '.')) || 0,
-    baseTaxes: Number(fare.taxas.replace(/,/g, '.')) || 0,
-    notes: '',
-    includeInPdf: true
-  }));
-
-  return {
-    segments,
-    fares,
-    paymentTerms: parsed.paymentTerms || 'Em ate 4x no cartao de credito. Taxas a vista.',
-    baggage: parsed.baggage || 'Conforme regra da tarifa',
-    notes: parsed.notes || '',
-    numParcelas: parsed.numParcelas,
-    ravPercent: parsed.ravPercent
-  };
-}
-
-function mapPricingResult(summary: SimpleBookingSummary, ravPercent?: number): PricingResult {
-  // PROBLEMA IDENTIFICADO: Não devemos somar tarifas de tipos diferentes (ADT + CHD)
-  // O mapPricingResult deve retornar um resultado consolidado apenas para referência
-  // O cálculo individual será feito em buildSingleOptionMultiStackedData
-  
-  const totalBaseFare = summary.fares.reduce((sum, fare) => sum + fare.baseFare, 0);
-  const totalBaseTaxes = summary.fares.reduce((sum, fare) => sum + fare.baseTaxes, 0);
-
-  console.log('🔍 mapPricingResult - Consolidado:', {
-    totalBaseFare,
-    totalBaseTaxes,
-    fareCount: summary.fares.length,
-    fareTypes: summary.fares.map(f => `${f.fareClass}/${f.paxType}`)
-  });
-
-  return computeTotals({
-    tarifa: totalBaseFare,
-    taxasBase: totalBaseTaxes,
-    ravPercent: ravPercent || 10, // Usar RAV detectado ou padrão 10%
-    fee: 0,
-    incentivoPercent: 0,
-    changePenalty: 'USD 500 + diferença tarifária'
-  });
-}
-function parseBaggageString(baggage?: string): ParsedBaggage[] | undefined {
-  if (!baggage) {
-    return undefined;
-  }
-
-  const entries = baggage
-    .split(/[,;]/)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  const parsed = entries
-    .map((entry) => {
-      const match = entry.match(/(\d+)\s*pc\s*(\d+)\s*kg(?:\/([a-zA-Z]+))?/i);
-      if (!match) {
-        return undefined;
-      }
-
-      return {
-        pieces: Number(match[1]),
-        pieceKg: Number(match[2]),
-        fareClass: match[3] ? match[3].toUpperCase() : undefined
-      } as ParsedBaggage;
-    })
-    .filter((item): item is ParsedBaggage => Boolean(item));
-
-  return parsed.length ? parsed : undefined;
-}
-
-
-function formatDateTimeParts(value?: string | null): { date: string; time: string } {
-  if (!value) {
-    return { date: '', time: '' };
-  }
-
-  let raw = String(value).replace(/#/g, '').replace(/T/, ' ').replace(/Z/, '').trim();
-  raw = raw.replace(/\s+/g, ' ');
-
-  const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2})(?::(\d{2}))?)/);
-  if (isoMatch) {
-    const [, year, month, day, hour = '00', minutes = '00'] = isoMatch;
-    return {
-      date: `${day}/${month}/${year}`,
-      time: `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')}`
-    };
-  }
-
-  const brMatch = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  const datePart = brMatch ? `${brMatch[1]}/${brMatch[2]}/${brMatch[3]}` : raw.split(' ')[0] ?? '';
-
-  let timePart = '';
-  const timeMatch = raw.match(/(\d{2}):(\d{2})/);
-  if (timeMatch) {
-    timePart = `${timeMatch[1]}:${timeMatch[2]}`;
-  } else {
-    const fourDigit = raw.match(/\b(\d{4})\b/);
-    if (fourDigit) {
-      timePart = `${fourDigit[1].slice(0, 2)}:${fourDigit[1].slice(2)}`;
+/**
+ * Converte data brasileira (DD/MM/YYYY) e horário (HH:MM) para ISO (YYYY-MM-DDTHH:MM:SS)
+ */
+function convertToISOString(brDate: string, brTime: string): string {
+  try {
+    const [day, month, year] = brDate.split('/');
+    if (!day || !month || !year) {
+      logger.warn('Data inválida para conversão ISO', { brDate }, 'convertToISOString');
+      return new Date().toISOString();
     }
+    const [hours, minutes] = brTime.split(':');
+    const date = new Date(
+      parseInt(year),
+      parseInt(month) - 1,
+      parseInt(day),
+      parseInt(hours || '0'),
+      parseInt(minutes || '0')
+    );
+    if (isNaN(date.getTime())) {
+      logger.warn('Data inválida após conversão', { brDate, brTime }, 'convertToISOString');
+      return new Date().toISOString();
+    }
+    return date.toISOString();
+  } catch (error) {
+    logger.error('Erro ao converter para ISO', error as Error, { brDate, brTime }, 'convertToISOString');
+    return new Date().toISOString();
   }
-
-  return { date: datePart, time: timePart };
 }
 
 function parseDateForLabel(value?: string | null): Date | null {
@@ -215,113 +110,10 @@ function parseDateForLabel(value?: string | null): Date | null {
   return null;
 }
 
-function getPrimaryCarrier(option?: ExtendedParsedOption): string {
-  if (!option) {
-    return '---';
-  }
-
-  const carrier = option.segments?.find((segment) => segment.carrier)?.carrier?.trim();
-  if (carrier) {
-    return carrier;
-  }
-
-  return option.label ?? '---';
-}
-
-
-function getDepartureLabel(option?: ExtendedParsedOption, fallback?: string): string {
-  if (option?.segments) {
-    for (const segment of option.segments) {
-      const { date } = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);
-      const parsed = parseDateForLabel(date);
-      if (parsed) {
-        return parsed.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-      }
-    }
-  }
-
-  if (fallback) {
-    return fallback;
-  }
-
-  return new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-}
-
-function buildMultiStackedData(options: ExtendedParsedOption[]): MultiStackedPdfData {
-  const primaryOption = options[0];
-  const headerSubtitle = getPrimaryCarrier(primaryOption);
-  const headerDepartureLabel = getDepartureLabel(primaryOption);
-
-  // Gerar data da cotação no formato brasileiro
-  const currentDate = new Date();
-  const quoteDate = currentDate.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  return {
-    header: {
-      title: 'COTAÇÃO DE AÉREOS',
-      subtitle: headerSubtitle,
-      departureLabel: headerDepartureLabel,
-      quoteDate: `Data da Cotação: ${quoteDate}`,
-      logoSrc: '/logo-sete-mares.jpg'
-    },
-    options: options.map((option, index) => ({
-      index: index + 1,
-      flights: (option.segments ?? []).map((segment) => {
-        const departure = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);
-        const arrival = formatDateTimeParts(segment.arrTimeISO ?? segment.depTimeISO);
-        const flightCode = `${(segment.carrier ?? '').trim()} ${(segment.flight ?? '').trim()}`.trim();
-
-        return {
-          flightCode,
-          fromAirport: segment.depAirport,
-          toAirport: segment.arrAirport,
-          departureDateTime: [departure.date, departure.time].filter(Boolean).join(' '),
-          arrivalDateTime: [arrival.date, arrival.time].filter(Boolean).join(' ')
-        };
-      }),
-      fareDetails: ((option.fareCategories || option.fares || []) as ParsedFare[])
-        .filter((fare) => (fare as { includeInPdf?: boolean }).includeInPdf !== false)
-        .map((fare) => {
-          const baseFare = Number(fare.baseFare ?? 0);
-          const baseTaxes = Number(fare.baseTaxes ?? 0);
-          
-          // Calcular incentivo e RAV para esta cabine específica
-          const incentivoPercent = option.pricingResult?.incentivoPercent || 0;
-          const ravPercent = option.pricingResult?.ravPercent || 10;
-          const fee = option.pricingResult?.fee || 0;
-          
-          const totals = computeTotals({
-            tarifa: baseFare,
-            taxasBase: baseTaxes,
-            ravPercent,
-            fee,
-            incentivoPercent,
-            changePenalty: option.pricingResult?.changePenalty
-          });
-          
-          return {
-            classLabel: `${fare.fareClass || 'N/A'}${fare.paxType && fare.paxType !== 'ADT' ? ` (${fare.paxType})` : ''}`,
-            baseFare,
-            taxes: totals.taxasExibidas, // Taxas com RAV + incentivo aplicados
-            total: baseFare + totals.taxasExibidas, // Total com incentivo
-            baggage: getBaggageAllowanceByClass(fare.fareClass || 'N/A') // Bagagem específica da classe
-          };
-        }),
-      footer: {
-        baggage: (option.baggage ?? [])
-          .map((bag) => bag.fareClass ? `${bag.pieces}pc ${bag.pieceKg}kg/${bag.fareClass}` : `${bag.pieces}pc ${bag.pieceKg}kg`)
-          .join(', ') || '2pc 32kg',
-        payment: option.paymentTerms || 'Em até 4x no cartão de crédito. Taxas à vista.',
-        penalty: option.changePenalty || option.notes || 'USD 500 + diferença tarifária, se houver. Bilhete não reembolsável.',
-        refundable: 'Bilhete nao reembolsavel.'
-      }
-    }))
-  };
-}
+// Funções movidas para módulos auxiliares:
+// - getPrimaryCarrier, getDepartureLabel, buildMultiStackedData -> pdf-builders.ts
+// - buildSimpleSummary, parseBaggageString, formatDateTimeParts, isComplexPnr -> parsing-helpers.ts
+// - mapPricingResult, calculateIndividualPricing -> pricing-helpers.ts
 
 async function decodeSegments(segments: ParsedSegment[], optionLabel?: string): Promise<{ flights: BookingFlight[]; errors: BookingDecodeError[] }> {
   const flights: BookingFlight[] = [];
@@ -332,27 +124,66 @@ async function decodeSegments(segments: ParsedSegment[], optionLabel?: string): 
   }
 
   const trechos = segments.map((segment) => {
-    const depTime = segment.depTimeISO ? segment.depTimeISO.split('T')[1]?.substring(0, 5) : '0000';
-    const arrTime = segment.arrTimeISO ? segment.arrTimeISO.split('T')[1]?.substring(0, 5) : '0000';
+    try {
+      const depTime = segment.depTimeISO ? segment.depTimeISO.split('T')[1]?.substring(0, 5) : '0000';
+      const arrTime = segment.arrTimeISO ? segment.arrTimeISO.split('T')[1]?.substring(0, 5) : '0000';
 
-    let dateStr = '01JAN';
-    if (segment.depTimeISO) {
-      const date = new Date(segment.depTimeISO);
-      const day = date.getDate().toString().padStart(2, '0');
-      const month = date.toLocaleString('en', { month: 'short' }).toUpperCase();
-      dateStr = `${day}${month}`;
+      let dateStr = '01JAN';
+      if (segment.depTimeISO) {
+        const date = new Date(segment.depTimeISO);
+        if (isNaN(date.getTime())) {
+          logger.warn('Data inválida em segmento', { segment, optionLabel }, 'decodeSegments');
+          return null;
+        }
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = date.toLocaleString('en', { month: 'short' }).toUpperCase();
+        dateStr = `${day}${month}`;
+      }
+
+      if (!segment.carrier || !segment.flight || !segment.depAirport || !segment.arrAirport) {
+        logger.warn('Segmento incompleto', { segment, optionLabel }, 'decodeSegments');
+        return null;
+      }
+
+      return `${segment.carrier} ${segment.flight} ${dateStr} ${segment.depAirport}${segment.arrAirport} HS1 ${depTime} ${arrTime}`;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao processar segmento';
+      logger.error('Erro ao processar segmento', { segment, error: errorMessage, optionLabel }, 'decodeSegments');
+      errors.push({
+        code: 'SEGMENT_PROCESSING_ERROR',
+        error: errorMessage,
+        option: optionLabel
+      });
+      return null;
     }
+  }).filter((trecho): trecho is string => trecho !== null);
 
-    return `${segment.carrier} ${segment.flight} ${dateStr} ${segment.depAirport}${segment.arrAirport} HS1 ${depTime} ${arrTime}`;
-  });
+  if (trechos.length === 0) {
+    errors.push({
+      code: 'NO_VALID_SEGMENTS',
+      error: 'Nenhum segmento válido encontrado',
+      option: optionLabel
+    });
+    return { flights, errors };
+  }
 
   try {
     const decoded = await decodeItinerary(trechos);
-    flights.push(...toBookingFlights(decoded || undefined, optionLabel));
+    if (decoded) {
+      flights.push(...toBookingFlights(decoded, optionLabel));
+    } else {
+      errors.push({
+        code: 'DECODING_FAILED',
+        error: 'Falha ao decodificar itinerário',
+        option: optionLabel
+      });
+    }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erro ao decodificar segmentos';
+    logger.error('Erro ao decodificar segmentos', { error: errorMessage, trechos, optionLabel }, 'decodeSegments');
     errors.push({
-      code: optionLabel ?? 'PNR',
-      error: error instanceof Error ? error.message : 'Erro ao decodificar segmentos',
+      code: 'DECODING_ERROR',
+      error: errorMessage,
       option: optionLabel
     });
   }
@@ -378,18 +209,35 @@ export function useBookingsController(): BookingControllerReturn {
   const [quoteObservation, setQuoteObservation] = useState('');
 
   const updateOptionPricing = useCallback((optionIndex: number, categories: ExtendedParsedOption['fareCategories'] = []) => {
-    setParsedOptions((prev) => prev.map((option, index) => index === optionIndex ? {
-      ...option,
-      fareCategories: categories,
-      fares: categories?.map((category) => ({
-        fareClass: category.fareClass,
-        paxType: category.paxType,
-        baseFare: category.baseFare,
-        baseTaxes: category.baseTaxes,
-        notes: category.notes,
-        includeInPdf: category.includeInPdf
-      })) || option.fares
-    } : option));
+    setParsedOptions((prev) => prev.map((option, index) => {
+      if (index !== optionIndex) return option;
+      
+      const totalBaseFare = categories.reduce((sum, category) => sum + (category?.baseFare ?? 0), 0);
+      const totalBaseTaxes = categories.reduce((sum, category) => sum + (category?.baseTaxes ?? 0), 0);
+      
+      const pricingResult = computeTotals({
+        tarifa: totalBaseFare,
+        taxasBase: totalBaseTaxes,
+        ravPercent: option.ravPercent || 10,
+        fee: option.feeUSD || 0,
+        incentivoPercent: option.incentivoPercent || 0,
+        changePenalty: option.changePenalty || 'USD 500 + diferença tarifária'
+      });
+      
+      return {
+        ...option,
+        fareCategories: categories,
+        fares: categories?.map((category) => ({
+          fareClass: category.fareClass,
+          paxType: category.paxType,
+          baseFare: category.baseFare,
+          baseTaxes: category.baseTaxes,
+          notes: category.notes,
+          includeInPdf: category.includeInPdf
+        })) || option.fares,
+        pricingResult
+      };
+    }));
     setResetTrigger((prev) => prev + 1);
   }, []);
 
@@ -416,13 +264,13 @@ export function useBookingsController(): BookingControllerReturn {
       tarifa: totalBaseFare, 
       taxasBase: totalBaseTaxes, 
       ravPercent: simplePnrData?.ravPercent || 10, 
-      fee: 0,
-      incentivoPercent: 0,
+      fee: simplePnrData?.feeUSD || 0,
+      incentivoPercent: simplePnrData?.incentivoPercent || 0,
       changePenalty: 'USD 500 + diferença tarifária'
     });
     setPricingResult(result);
     setResetTrigger((prev) => prev + 1);
-  }, [simplePnrData?.ravPercent]);
+  }, [simplePnrData?.ravPercent, simplePnrData?.feeUSD, simplePnrData?.incentivoPercent]);
 
   const setPricingResultFromEngine = useCallback((result: PricingResult) => {
     setPricingResult(result);
@@ -478,8 +326,8 @@ export function useBookingsController(): BookingControllerReturn {
           flight: flight.flight,
           depAirport: `${flight.departureAirport.description} (${flight.departureAirport.iataCode})`,
           arrAirport: `${flight.landingAirport.description} (${flight.landingAirport.iataCode})`,
-          depTimeISO: `${flight.departureDate} ${flight.departureTime}`,
-          arrTimeISO: `${flight.landingDate} ${flight.landingTime}`
+          depTimeISO: convertToISOString(flight.departureDate, flight.departureTime),
+          arrTimeISO: convertToISOString(flight.landingDate, flight.landingTime)
         }));
         
         return {
@@ -490,7 +338,28 @@ export function useBookingsController(): BookingControllerReturn {
     );
 
     const extendedOptions = mapParsedEmailToExtendedOptions({ options: extendedOptionsWithFlights });
-    setParsedOptions(extendedOptions);
+    
+    // Calcular pricingResult inicial para cada opção
+    const optionsWithPricing = extendedOptions.map((option) => {
+      const totalBaseFare = (option.fareCategories || []).reduce((sum, fare) => sum + (fare.baseFare || 0), 0);
+      const totalBaseTaxes = (option.fareCategories || []).reduce((sum, fare) => sum + (fare.baseTaxes || 0), 0);
+      
+      const pricingResult = computeTotals({
+        tarifa: totalBaseFare,
+        taxasBase: totalBaseTaxes,
+        ravPercent: option.ravPercent || 10,
+        fee: option.feeUSD || 0,
+        incentivoPercent: option.incentivoPercent || 0,
+        changePenalty: option.changePenalty || 'USD 500 + diferença tarifária'
+      });
+      
+      return {
+        ...option,
+        pricingResult
+      };
+    });
+    
+    setParsedOptions(optionsWithPricing);
 
     setDecodedFlights(flightsAccumulator);
     setErrors(errorAccumulator);
@@ -518,14 +387,14 @@ export function useBookingsController(): BookingControllerReturn {
           throw new Error('Nenhum voo decodificado');
         }
         
-        console.log('✅ Decodificação concluída, iniciando validação...');
+        logger.info('Decodificação concluída, iniciando validação', { quoteId }, 'handleSimplePnr');
         
         // Validar rigorosamente todos os voos
         const validationResult = QuoteValidator.validateQuote(itinerary.flightInfo.flights);
         
         if (!validationResult.isValid) {
           const errorMsg = validationResult.errors.join('; ');
-          console.error('❌ Validação falhou:', errorMsg);
+          logger.error('Validação falhou', new Error(errorMsg), { quoteId, validationErrors: validationResult.errors }, 'handleSimplePnr');
           healthMonitor.recordQuoteFailure(quoteId, startTime, errorMsg);
           setErrors(validationResult.errors.map(error => ({
             code: 'VALIDATION_ERROR',
@@ -535,7 +404,7 @@ export function useBookingsController(): BookingControllerReturn {
           return;
         }
         
-        console.log('✅ Validação passou, processando voos...');
+        logger.info('Validação passou, processando voos', { quoteId, flightsCount: itinerary.flightInfo.flights.length }, 'handleSimplePnr');
         
         const flights = toBookingFlights(itinerary);
         setDecodedFlights(flights);
@@ -568,16 +437,16 @@ export function useBookingsController(): BookingControllerReturn {
         // Registrar sucesso apenas se não há erros críticos
         if (airportErrors.length === 0) {
           healthMonitor.recordQuoteSuccess(quoteId, startTime);
-          console.log('✅ Processamento concluído com sucesso!');
+          logger.info('Processamento concluído com sucesso', { quoteId }, 'handleSimplePnr');
         } else {
           const errorMsg = airportErrors.map(e => e.error).join('; ');
           healthMonitor.recordQuoteFailure(quoteId, startTime, errorMsg);
-          console.warn('⚠️ Processamento concluído com warnings:', errorMsg);
+          logger.warn('Processamento concluído com warnings', { quoteId, warnings: errorMsg }, 'handleSimplePnr');
         }
         
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Erro ao decodificar PNR simples';
-        console.error('❌ Erro crítico na decodificação:', errorMsg);
+        logger.error('Erro crítico na decodificação', new Error(errorMsg), { quoteId }, 'handleSimplePnr');
         healthMonitor.recordQuoteFailure(quoteId, startTime, errorMsg);
         setErrors([{ code: 'PNR_SIMPLE', error: errorMsg }]);
         setDecodedFlights([]);
@@ -600,7 +469,7 @@ export function useBookingsController(): BookingControllerReturn {
 
       clearState();
 
-      const complex = isComplexPnr(pnrText);
+      const complex = checkComplexPnr(pnrText);
       setIsComplexPNR(complex);
 
       logger.info(`Processando PNR ${complex ? 'complexo' : 'simples'}`, {
@@ -617,7 +486,7 @@ export function useBookingsController(): BookingControllerReturn {
       actionEnd();
     } catch (error) {
       logger.error('Erro ao processar PNR', error as Error, {
-        isComplex: isComplexPnr(pnrText),
+        isComplex: checkComplexPnr(pnrText),
         textLength: pnrText.length
       }, 'BookingsController');
       actionEnd();
@@ -630,7 +499,7 @@ export function useBookingsController(): BookingControllerReturn {
   }, []);
 
   const buildSimplePdf = useCallback(async () => {
-    console.log('🔍 buildSimplePdf iniciado');
+    logger.info('Iniciando buildSimplePdf', {}, 'buildSimplePdf');
     const parsed = await parsePNR(pnrText);
     if (!parsed) {
       throw new Error('Erro ao processar PNR');
@@ -640,11 +509,11 @@ export function useBookingsController(): BookingControllerReturn {
     const summary = buildSimpleSummary(parsed);
     const effectivePricing = pricingResult ?? (summary ? mapPricingResult(summary, summary.ravPercent) : null);
     
-    console.log('🔍 buildSimplePdf dados:', {
+    logger.debug('buildSimplePdf dados', {
       summary: summary ? { 
         faresCount: summary.fares.length, 
         ravPercent: summary.ravPercent, 
-        fares: summary.fares.map(f => ({ fareClass: f.fareClass, baseFare: f.baseFare, baseTaxes: f.baseTaxes }))
+        fares: summary.fares.map((f: ParsedFare) => ({ fareClass: f.fareClass, baseFare: f.baseFare, baseTaxes: f.baseTaxes }))
       } : null,
       effectivePricing,
       pricingResult
@@ -666,7 +535,7 @@ export function useBookingsController(): BookingControllerReturn {
   const buildProfessionalPdf = useCallback(async () => {
     let options = parsedOptions;
 
-    console.log('🔍 buildProfessionalPdf - parsedOptions:', {
+    logger.debug('buildProfessionalPdf - parsedOptions', {
       count: options.length,
       options: options.map((o, i) => ({
         index: i,
@@ -674,7 +543,7 @@ export function useBookingsController(): BookingControllerReturn {
         segmentsCount: o.segments?.length || 0,
         faresCount: o.fares?.length || 0
       }))
-    });
+    }, 'buildProfessionalPdf');
 
     if (options.length === 0) {
       const { parseEmailToOptions } = await import('@/lib/email-parser');
@@ -688,11 +557,11 @@ export function useBookingsController(): BookingControllerReturn {
       (opt.fares && opt.fares.length > 0)
     );
 
-    console.log('🔍 buildProfessionalPdf - validOptions:', {
+    logger.debug('buildProfessionalPdf - validOptions', {
       original: options.length,
       valid: validOptions.length,
       filtered: options.length - validOptions.length
-    });
+    }, 'buildProfessionalPdf');
 
     if (validOptions.length === 0) {
       throw new Error('Nenhuma opcao valida encontrada para gerar PDF');
@@ -715,8 +584,8 @@ export function useBookingsController(): BookingControllerReturn {
           tarifa, 
           taxasBase, 
           ravPercent: ravPercentFromEngine, 
-          fee: 0, 
-          incentivoPercent: 0,
+          fee: opt.feeUSD || 0, 
+          incentivoPercent: opt.incentivoPercent || 0,
           changePenalty: 'USD 500 + diferença tarifária'
         });
         return {
@@ -748,7 +617,7 @@ export function useBookingsController(): BookingControllerReturn {
 
   const onGeneratePdf = useCallback(async () => {
     const actionEnd = logger.actionStart('PDF Generation', {
-      isComplex: isComplexPnr(pnrText),
+      isComplex: checkComplexPnr(pnrText),
       hasText: !!pnrText.trim()
     }, 'BookingsController');
 
@@ -762,33 +631,47 @@ export function useBookingsController(): BookingControllerReturn {
       setIsGenerating(true);
       
       const startTime = Date.now();
-      const isComplex = isComplexPnr(pnrText);
+      const isComplex = checkComplexPnr(pnrText);
       
       logger.info(`Iniciando geração de PDF ${isComplex ? 'complexo' : 'simples'}`, {
         isComplex,
         textLength: pnrText.length
       }, 'BookingsController');
 
-      if (isComplex) {
-        await buildProfessionalPdf();
-      } else {
-        await buildSimplePdf();
+      try {
+        if (isComplex) {
+          if (parsedOptions.length === 0) {
+            throw new Error('Nenhuma opção parseada disponível para PDF complexo');
+          }
+          await buildProfessionalPdf();
+        } else {
+          if (!simplePnrData) {
+            throw new Error('Dados do PNR simples não disponíveis');
+          }
+          await buildSimplePdf();
+        }
+
+        const duration = Date.now() - startTime;
+        logger.pdfGeneration({
+          type: isComplex ? 'complex' : 'simple',
+          pages: isComplex ? parsedOptions.length : 1,
+          size: 0 // TODO: Obter tamanho real do PDF
+        }, duration);
+
+        actionEnd();
+      } catch (innerError) {
+        logger.error('Erro interno ao gerar PDF', innerError as Error, {
+          isComplex,
+          textLength: pnrText.length
+        }, 'BookingsController');
+        throw innerError; // Re-throw para ser capturado pelo catch externo
       }
-
-      const duration = Date.now() - startTime;
-      logger.pdfGeneration({
-        type: isComplex ? 'complex' : 'simple',
-        pages: isComplex ? parsedOptions.length : 1,
-        size: 0 // TODO: Obter tamanho real do PDF
-      }, duration);
-
-      actionEnd();
     } catch (error) {
       logger.error('Erro ao gerar PDF', error as Error, {
-        isComplex: isComplexPnr(pnrText),
+        isComplex: checkComplexPnr(pnrText),
         textLength: pnrText.length
       }, 'BookingsController');
-      alert('Erro ao gerar PDF. Veja o console para detalhes.');
+      alert(`Erro ao gerar PDF: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -856,122 +739,7 @@ export function useBookingsController(): BookingControllerReturn {
 }
 
 
-function buildSingleOptionMultiStackedData(
-  summary: SimpleBookingSummary | null,
-  itinerary?: DecodedItinerary | null,
-  pricingResult?: PricingResult | null
-): MultiStackedPdfData {
-  console.log('🔍 buildSingleOptionMultiStackedData chamada com:', {
-    summary: summary ? { 
-      faresCount: summary.fares.length, 
-      ravPercent: summary.ravPercent, 
-      fares: summary.fares.map(f => ({ fareClass: f.fareClass, baseFare: f.baseFare, baseTaxes: f.baseTaxes }))
-    } : null,
-    pricingResult
-  });
-  const itineraryFlights = itinerary?.flightInfo?.flights ?? [];
-  const segments: ParsedSegment[] = itineraryFlights.length
-    ? itineraryFlights.map<ParsedSegment>((flight) => ({
-        carrier: flight.company.description || flight.company.iataCode,
-        flight: flight.flight,
-        depAirport: `${flight.departureAirport.description} (${flight.departureAirport.iataCode})`,
-        arrAirport: `${flight.landingAirport.description} (${flight.landingAirport.iataCode})`,
-        depTimeISO: `${flight.departureDate} ${flight.departureTime}`,
-        arrTimeISO: `${flight.landingDate} ${flight.landingTime}`
-      }))
-    : summary?.segments ?? [];
-
-  console.log('🔍 Iniciando normalizedFares com:', { summaryFares: summary?.fares, pricingResult });
-  
-  const normalizedFares: ParsedFare[] = (summary?.fares ?? []).map((fare) => {
-    const baseFare = fare.baseFare ?? 0;
-    const baseTaxes = fare.baseTaxes ?? 0;
-    let adjustedTaxes = baseTaxes;
-
-    // Para múltiplas tarifas, calcular as taxas ajustadas individualmente
-    console.log(`🔍 Verificando condição para ${fare.fareClass}:`, {
-      hasPricingResult: !!pricingResult,
-      hasRavPercent: !!summary?.ravPercent,
-      ravPercent: summary?.ravPercent
-    });
-    
-    if (pricingResult) {
-        const individualPricing = computeTotals({
-          tarifa: baseFare,
-          taxasBase: baseTaxes,
-          ravPercent: summary?.ravPercent || 10,
-          fee: 0,
-          incentivoPercent: 0,
-          changePenalty: pricingResult?.changePenalty
-        });
-      adjustedTaxes = individualPricing.taxasExibidas;
-      
-      // Debug para PDF
-      console.log(`🔍 PDF Debug - ${fare.fareClass}:`, {
-        baseFare,
-        baseTaxes,
-        adjustedTaxes,
-        total: baseFare + adjustedTaxes,
-        individualPricing,
-        ravPercent: summary?.ravPercent || 10
-      });
-    }
-
-    return {
-      ...fare,
-      baseFare,
-      baseTaxes: adjustedTaxes,
-      includeInPdf: fare.includeInPdf ?? true
-    };
-  });
-
-  const fallbackFares: ParsedFare[] =
-    !normalizedFares.length && pricingResult
-      ? [
-          {
-            fareClass: 'Tarifa',
-            paxType: 'ADT',
-            baseFare: Math.max(pricingResult.total - pricingResult.taxasExibidas, 0),
-            baseTaxes: pricingResult.taxasExibidas,
-            notes: '',
-            includeInPdf: true
-          }
-        ]
-      : [];
-
-  const faresForPdf = normalizedFares.length ? normalizedFares : fallbackFares;
-
-  const routeLabel =
-    segments.length > 1
-      ? `${segments[0].depAirport} -> ${segments[segments.length - 1].arrAirport}`
-      : segments.length === 1
-        ? `${segments[0].depAirport} -> ${segments[0].arrAirport}`
-        : 'Cotacao Personalizada';
-
-  // Construir payment terms dinamicamente
-  const numParcelas = summary?.numParcelas || 4;
-  const defaultPaymentTerms = `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
-  
-  // Extrair moeda do PNR para usar na multa de alteração
-  const currency = 'USD'; // Default currency
-  const defaultChangePenalty = `${currency} 500 + diferença tarifária, se houver. Bilhete não reembolsável.`;
-  
-  const option: ExtendedParsedOption = {
-    label: routeLabel,
-    paymentTerms: summary?.paymentTerms || defaultPaymentTerms,
-    notes: summary?.notes,
-    segments,
-    fares: faresForPdf,
-    fareCategories: faresForPdf,
-    baggage: parseBaggageString(summary?.baggage),
-    // Usar changePenalty do pricingResult se disponível, senão usar moeda detectada
-    changePenalty: pricingResult?.changePenalty || summary?.notes || defaultChangePenalty
-  };
-
-  return buildMultiStackedData([option]);
-}
-
-// Funções removidas para corrigir erros de TypeScript
+// Função buildSingleOptionMultiStackedData movida para pdf-builders.ts
 
 
 

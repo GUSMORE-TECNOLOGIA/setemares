@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Wrench, RefreshCw, FileText } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { CodeCorrectionModal } from './CodeCorrectionModal';
@@ -24,7 +24,6 @@ interface DecodeError {
 export function QuotePreview({ pnrData, onDecodeComplete }: QuotePreviewProps) {
   const [decodeResults, setDecodeResults] = useState<DecodeResult[]>([]);
   const [decodedFlights, setDecodedFlights] = useState<DecodedFlight[]>([]);
-  const [errors, setErrors] = useState<DecodeError[]>([]);
   const [isDecoding, setIsDecoding] = useState(false);
   const [correctionModal, setCorrectionModal] = useState<{
     isOpen: boolean;
@@ -36,7 +35,6 @@ export function QuotePreview({ pnrData, onDecodeComplete }: QuotePreviewProps) {
     tokenKind: 'airline' | 'airport' | 'city' | 'segment';
   }>({ isOpen: false, token: '', tokenKind: 'airline' });
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [pnrHash, setPnrHash] = useState<string>('');
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [parsedEmail, setParsedEmail] = useState<ParsedEmail | null>(null);
 
@@ -85,48 +83,6 @@ export function QuotePreview({ pnrData, onDecodeComplete }: QuotePreviewProps) {
       setParsedEmail(null);
     }
   }, [pnrData]);
-
-
-  // Extrair códigos do PNR
-  const extractCodes = (pnr: string): string[] => {
-    const codes: string[] = [];
-    
-    // Regex para encontrar códigos IATA (3 letras) e ICAO (4 letras)
-    const iataRegex = /\b[A-Z]{3}\b/g;
-    const icaoRegex = /\b[A-Z]{4}\b/g;
-    
-    // Regex para encontrar códigos de companhias (2 letras)
-    const airlineRegex = /\b[A-Z]{2}\b/g;
-    
-    // Regex para encontrar códigos de aeroportos concatenados (6 letras como GRULHR)
-    const airportPairRegex = /\b[A-Z]{6}\b/g;
-    
-    const iataMatches = pnr.match(iataRegex) || [];
-    const icaoMatches = pnr.match(icaoRegex) || [];
-    const airlineMatches = pnr.match(airlineRegex) || [];
-    const airportPairMatches = pnr.match(airportPairRegex) || [];
-    
-    // Adicionar códigos encontrados
-    codes.push(...iataMatches);
-    codes.push(...icaoMatches);
-    codes.push(...airlineMatches);
-    
-    // Separar códigos de aeroportos concatenados (ex: GRULHR -> GRU, LHR)
-    airportPairMatches.forEach(pair => {
-      const first = pair.substring(0, 3);
-      const second = pair.substring(3, 6);
-      codes.push(first, second);
-    });
-    
-    // Filtrar códigos comuns que não são códigos de aeroportos/companhias
-    const commonWords = ['USD', 'HS1', 'HK1', 'NOV', 'DEC', 'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT'];
-    const filteredCodes = codes.filter(code => !commonWords.includes(code));
-    
-    console.log('📋 Códigos brutos encontrados:', codes);
-    console.log('📋 Códigos filtrados:', filteredCodes);
-    
-    return [...new Set(filteredCodes)]; // Remove duplicatas
-  };
 
   // Decodificar códigos
   const decodeCodes = async () => {
@@ -221,28 +177,7 @@ export function QuotePreview({ pnrData, onDecodeComplete }: QuotePreviewProps) {
     heuristic: decodeResults.filter(r => r.source === 'heuristic').length
   };
 
-  const getResultIcon = (result: DecodeResult) => {
-    if (result.success) {
-      switch (result.source) {
-        case 'override': return <Wrench className="w-4 h-4 text-blue-500" />;
-        case 'exact_match': return <CheckCircle className="w-4 h-4 text-green-500" />;
-        case 'heuristic': return <CheckCircle className="w-4 h-4 text-yellow-500" />;
-        default: return <CheckCircle className="w-4 h-4 text-green-500" />;
-      }
-    }
-    return <XCircle className="w-4 h-4 text-red-500" />;
-  };
-
-  const getResultLabel = (result: DecodeResult) => {
-    if (!result.success) return 'Erro';
-    
-    switch (result.source) {
-      case 'override': return 'Override';
-      case 'exact_match': return 'Exato';
-      case 'heuristic': return 'Heurístico';
-      default: return 'Desconhecido';
-    }
-  };
+  // Funções removidas: getResultIcon e getResultLabel não são usadas
 
   // Converter DecodedFlight para DecodedSegment
   const convertToDecodedSegments = (flights: DecodedFlight[]): DecodedSegment[] => {
@@ -296,16 +231,7 @@ export function QuotePreview({ pnrData, onDecodeComplete }: QuotePreviewProps) {
     return parts[2]?.trim() || 'Unknown';
   };
 
-  const getResultColor = (result: DecodeResult) => {
-    if (!result.success) return 'red';
-    
-    switch (result.source) {
-      case 'override': return 'blue';
-      case 'exact_match': return 'green';
-      case 'heuristic': return 'yellow';
-      default: return 'gray';
-    }
-  };
+  // Função removida: getResultColor não é usada
 
   return (
     <div className="glass-card p-6 h-full">

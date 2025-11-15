@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, X, Check } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { supabase } from '../../lib/supabase';
@@ -26,7 +26,7 @@ export function CorrectionPopover({
   isOpen, 
   onClose, 
   token, 
-  tokenKind, 
+  tokenKind: _tokenKind, 
   onCorrected,
   onReopenDetails
 }: CorrectionPopoverProps) {
@@ -54,40 +54,50 @@ export function CorrectionPopover({
   const searchCatalog = async (query: string) => {
     setIsSearching(true);
     try {
-      // Buscar em aeroportos e companhias simultaneamente
-      const [airportsResult, airlinesResult] = await Promise.all([
-        supabase
-          .from('airports')
-          .select('*')
-          .or(`name.ilike.%${query}%,iata3.ilike.%${query}%,icao4.ilike.%${query}%`)
-          .limit(5),
-        supabase
-          .from('airlines')
-          .select('*')
-          .or(`name.ilike.%${query}%,iata2.ilike.%${query}%,icao3.ilike.%${query}%`)
-          .limit(5)
+      // Usar cache quando possível para melhor performance
+      const { getAirports, getAirlines } = await import('@/lib/catalog-cache');
+      
+      // Carregar todos os dados do cache (ou Supabase se cache expirado)
+      const [allAirports, allAirlines] = await Promise.all([
+        getAirports().catch(() => []), // Fallback para array vazio em caso de erro
+        getAirlines().catch(() => [])
       ]);
 
-      const airports = airportsResult.data || [];
-      const airlines = airlinesResult.data || [];
+      // Filtrar localmente (mais rápido que query no Supabase)
+      const queryLower = query.toLowerCase();
+      const airports = allAirports
+        .filter(airport => 
+          airport.name?.toLowerCase().includes(queryLower) ||
+          airport.iata3?.toLowerCase().includes(queryLower) ||
+          airport.icao4?.toLowerCase().includes(queryLower)
+        )
+        .slice(0, 5);
+      
+      const airlines = allAirlines
+        .filter(airline =>
+          airline.name?.toLowerCase().includes(queryLower) ||
+          airline.iata2?.toLowerCase().includes(queryLower) ||
+          airline.icao3?.toLowerCase().includes(queryLower)
+        )
+        .slice(0, 5);
 
       const results: SearchResult[] = [
         ...airports.map(item => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name,
           iata: item.iata3,
-          icao: item.icao4,
-          city: item.city,
+          icao: item.icao4 || undefined,
+          city: item.city_iata || undefined,
           country: item.country,
           kind: 'airport' as const
         })),
         ...airlines.map(item => ({
-          id: item.id,
+          id: String(item.id),
           name: item.name,
-          iata: item.iata2,
-          icao: item.icao3,
-          city: item.city,
-          country: item.country,
+          iata: item.iata2 || undefined,
+          icao: item.icao3 || undefined,
+          city: undefined, // AirlineRow não tem city
+          country: item.country || undefined,
           kind: 'airline' as const
         }))
       ];
@@ -179,9 +189,9 @@ export function CorrectionPopover({
           </h3>
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={handleClose}
-            className="text-slate-400 hover:text-white"
+            className="text-slate-400 hover:text-white p-2"
           >
             <X className="w-4 h-4" />
           </Button>

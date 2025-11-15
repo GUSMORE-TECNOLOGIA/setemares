@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { invalidateCache } from '@/lib/catalog-cache';
 import type { CityRow, AirportRow, AirlineRow, CodeOverrideRow, CodeUnknownRow } from '@/types/db';
 
 // Hook para listar dados com paginação e busca
@@ -184,6 +185,12 @@ export function useSupabaseCRUD<T>(table: string) {
         .single();
       
       if (createError) throw createError;
+      
+      // Invalidar cache se for tabela de catálogo
+      if (table === 'airports' || table === 'airlines') {
+        invalidateCache(table === 'airports' ? 'airports' : 'airlines');
+      }
+      
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -205,6 +212,12 @@ export function useSupabaseCRUD<T>(table: string) {
         .single();
       
       if (updateError) throw updateError;
+      
+      // Invalidar cache se for tabela de catálogo
+      if (table === 'airports' || table === 'airlines') {
+        invalidateCache(table === 'airports' ? 'airports' : 'airlines');
+      }
+      
       return result;
     } catch (err: any) {
       setError(err.message);
@@ -224,6 +237,11 @@ export function useSupabaseCRUD<T>(table: string) {
         .eq('id', id);
       
       if (deleteError) throw deleteError;
+      
+      // Invalidar cache se for tabela de catálogo
+      if (table === 'airports' || table === 'airlines') {
+        invalidateCache(table === 'airports' ? 'airports' : 'airlines');
+      }
     } catch (err: any) {
       setError(err.message);
       throw err;

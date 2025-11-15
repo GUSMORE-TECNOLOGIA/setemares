@@ -1,6 +1,12 @@
 // Carregar variáveis de ambiente
 require('dotenv').config();
 
+// Carregar configuração centralizada
+const { SUPABASE_CONFIG, OPENAI_CONFIG, CONCIERGE_CONFIG, SECURITY_CONFIG, validateConfig } = require('./server-config.cjs');
+
+// Validar configuração no startup
+validateConfig();
+
 const express = require("express");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
@@ -8,6 +14,26 @@ const morgan = require("morgan");
 const cors = require("cors");
 const { chromium } = require("playwright");
 const { createClient } = require("@supabase/supabase-js");
+const { validateConciergeForm, validatePdfGeneration, validateDateRange } = require('./server-validation');
+
+// Importar módulos utilitários modulares
+const { setCache, getCache } = require('./server/utils/cache');
+const { safeFetchJson } = require('./server/utils/http-helpers');
+const { geocodeDestination, geocodeAddress } = require('./server/utils/geocoding');
+const { 
+  isoDateRange, 
+  getCityTimezone, 
+  calculateDistance, 
+  distanceKm, 
+  parseTimeToMin, 
+  formatMinToTime, 
+  timeInBlock 
+} = require('./server/utils/date-helpers');
+const { fetchWeatherRange } = require('./server/utils/weather');
+
+// Importar rotas modulares
+const { registerPdfRoutes } = require('./server/routes/pdf');
+const { registerConciergeRoutes } = require('./server/routes/concierge');
 
 // Carregar datasets locais
 const bhPlaces = require('./assets/bh-places.json');
@@ -23,118 +49,97 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
-// Rate limit (ajuste por necessidade)
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 300,
+// Rate limit global (reduzido conforme plano: 300 → 100 req/15min)
+const globalLimiter = rateLimit({
+  windowMs: SECURITY_CONFIG.rateLimitWindowMs,
+  max: SECURITY_CONFIG.rateLimitGlobal,
   standardHeaders: true,
   legacyHeaders: false,
+  message: 'Muitas requisições. Tente novamente em alguns minutos.',
+  skip: (req) => {
+    // Health check não conta no rate limit
+    return req.path === '/health';
+  },
 });
-app.use(limiter);
+app.use(globalLimiter);
 
-// CORS restrito
-const ALLOWED_ORIGINS = [
-  "https://sete-mares.app.br",
-  "http://localhost:5173",
-];
+// Rate limit específico para Concierge (proteção anti-bruteforce)
+const conciergeLimiter = rateLimit({
+  windowMs: SECURITY_CONFIG.rateLimitWindowMs,
+  max: SECURITY_CONFIG.rateLimitConcierge,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Limite de requisições para Concierge excedido. Tente novamente em alguns minutos.',
+  skipSuccessfulRequests: false, // Contar todas as requisições, mesmo as bem-sucedidas
+});
+
+// Rate limit específico para PDF
+const pdfLimiter = rateLimit({
+  windowMs: SECURITY_CONFIG.rateLimitWindowMs,
+  max: SECURITY_CONFIG.rateLimitPdf,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Limite de geração de PDF excedido. Tente novamente em alguns minutos.',
+});
+
+// CORS com validação dinâmica baseada em ambiente
+const isProduction = SECURITY_CONFIG.environment === 'production';
+const ALLOWED_ORIGINS = SECURITY_CONFIG.allowedOrigins;
+
 app.use(
   cors({
     origin(origin, cb) {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      // Em desenvolvimento, permitir requisições sem origin (ex: Postman, curl)
+      if (!origin) {
+        if (isProduction) {
+          return cb(new Error("CORS: Origin obrigatório em produção"), false);
+        }
+        return cb(null, true);
+      }
+
+      // Validar origem
+      if (ALLOWED_ORIGINS.includes(origin)) {
+        return cb(null, true);
+      }
+
+      // Em produção, rejeitar origens não permitidas
+      if (isProduction) {
+        console.warn(`[CORS] Origem bloqueada: ${origin}`);
+        return cb(new Error("CORS not allowed"), false);
+      }
+
+      // Em desenvolvimento, permitir localhost em qualquer porta
+      if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+        console.log(`[CORS] Permitindo localhost em desenvolvimento: ${origin}`);
+        return cb(null, true);
+      }
+
+      // Rejeitar outras origens
+      console.warn(`[CORS] Origem não permitida: ${origin}`);
       return cb(new Error("CORS not allowed"), false);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
   })
 );
 
 app.use(express.json({ limit: "1mb" }));
 
-// Inicializar Supabase
-const supabaseUrl = process.env.VITE_SUPABASE_URL || "https://dgverpbhxtslmfrrcwwj.supabase.co";
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRndmVycGJoeHRzbG1mcnJjd3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDY0OTEsImV4cCI6MjA3Mzg4MjQ5MX0.q1OogIBKY4GIzc0wwLnFfzq3lZt3JMHAj0f832kqtbs";
-
-console.log('Supabase URL:', supabaseUrl ? 'Configurado' : 'Não configurado');
-console.log('Supabase Key:', supabaseKey ? 'Configurado' : 'Não configurado');
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Inicializar Supabase com configuração validada
+// Configuração carregada de server-config.js (validação já feita no require)
+const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // =============================
 // Utilidades e Infra (cache/log)
 // =============================
-const FEATURE_USE_AI = (process.env.USE_AI_CONCIERGE || 'true').toLowerCase() !== 'false';
-const DEFAULT_CACHE_TTL_MIN = parseInt(process.env.CACHE_TTL_MIN || '360', 10); // 6h
+const FEATURE_USE_AI = CONCIERGE_CONFIG.useAI;
+const DEFAULT_CACHE_TTL_MIN = CONCIERGE_CONFIG.cacheTtlMinutes;
 
-// cache em memória (fallback se tabela de cache não existir)
-const memoryCache = new Map(); // key -> { payload, expiresAt }
-
-function setMemoryCache(key, payload, ttlMin = DEFAULT_CACHE_TTL_MIN) {
-  const expiresAt = Date.now() + ttlMin * 60 * 1000;
-  memoryCache.set(key, { payload, expiresAt });
-}
-
-function getMemoryCache(key) {
-  const item = memoryCache.get(key);
-  if (!item) return null;
-  if (Date.now() > item.expiresAt) {
-    memoryCache.delete(key);
-    return null;
-  }
-  return item.payload;
-}
-
-async function setCache(key, payload, ttlMin = DEFAULT_CACHE_TTL_MIN) {
-  try {
-    // tentar supabase table concierge_sources_cache
-    const expiresAt = new Date(Date.now() + ttlMin * 60 * 1000).toISOString();
-    const { error } = await supabase
-      .from('concierge_sources_cache')
-      .upsert({ key, payload, expires_at: expiresAt })
-      .select()
-      .single();
-    if (error) throw error;
-  } catch (_err) {
-    setMemoryCache(key, payload, ttlMin);
-  }
-}
-
-async function getCache(key) {
-  try {
-    const { data, error } = await supabase
-      .from('concierge_sources_cache')
-      .select('payload, expires_at')
-      .eq('key', key)
-      .single();
-    if (error || !data) throw error || new Error('cache miss');
-    if (new Date(data.expires_at).getTime() < Date.now()) return null;
-    return data.payload;
-  } catch (_err) {
-    return getMemoryCache(key);
-  }
-}
-
-function withTimeout(promise, ms, label = 'request') {
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms)),
-  ]);
-}
-
-async function safeFetchJson(url, opts = {}, label = 'fetch') {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), opts.timeout || 12000);
-  try {
-    const res = await fetch(url, { ...opts, signal: controller.signal });
-    if (!res.ok) throw new Error(`${label} ${res.status}`);
-    return await res.json();
-  } finally {
-    clearTimeout(id);
-  }
-}
-
+// Funções hashKey e outras ainda locais (podem ser extraídas depois)
 function hashKey(obj) {
   try {
     const str = typeof obj === 'string' ? obj : JSON.stringify(obj);
@@ -146,265 +151,34 @@ function hashKey(obj) {
   }
 }
 
-// Helper para timezone correto por cidade
-function getCityTimezone(city, country, timezones) {
-  // Mapa de cidades brasileiras para timezone correto
-  const cityTimezoneMap = {
-    'Belo Horizonte': 'UTC-03:00',
-    'São Paulo': 'UTC-03:00', 
-    'Rio de Janeiro': 'UTC-03:00',
-    'Brasília': 'UTC-03:00',
-    'Salvador': 'UTC-03:00',
-    'Fortaleza': 'UTC-03:00',
-    'Recife': 'UTC-03:00',
-    'Manaus': 'UTC-04:00',
-    'Porto Alegre': 'UTC-03:00',
-    'Curitiba': 'UTC-03:00'
-  };
-  
-  // Se temos mapeamento específico, usar
-  if (cityTimezoneMap[city]) {
-    return cityTimezoneMap[city];
+// Wrapper para cache que aceita supabase
+const cacheWrapper = {
+  async set(key, payload, ttlMin = DEFAULT_CACHE_TTL_MIN) {
+    return setCache(supabase, key, payload, ttlMin);
+  },
+  async get(key) {
+    return getCache(supabase, key);
   }
-  
-  // Para Brasil, usar UTC-03:00 (horário padrão)
-  if (country === 'Brazil' || country === 'Brasil') {
-    return 'UTC-03:00';
-  }
-  
-  // Para outros países, usar a primeira timezone disponível
-  if (timezones && timezones.length > 0) {
-    return timezones[0];
-  }
-  
-  return 'UTC+00:00'; // fallback
-}
-
-// Helper para calcular distância entre coordenadas
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371; // Raio da Terra em km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-}
+};
 
 // =============
 // Connectors
 // =============
-async function geocodeDestination(query) {
-  // Preferir Nominatim (sem chave) para lat/lon e país
-  const cacheKey = `geo:${query}`;
-  const cached = await getCache(cacheKey);
-  if (cached) return cached;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`;
-  const json = await safeFetchJson(url, { headers: { 'User-Agent': '7Mares-Concierge/1.0' } }, 'geocode');
-  const best = Array.isArray(json) && json[0];
-  if (!best) return null;
-  const result = {
-    lat: parseFloat(best.lat),
-    lon: parseFloat(best.lon),
-    displayName: best.display_name,
-    city: best.address?.city || best.address?.town || best.address?.village || best.address?.state_district || '',
-    state: best.address?.state || '',
-    country: best.address?.country || '',
-    countryCode: (best.address?.country_code || '').toUpperCase(),
-  };
-  await setCache(cacheKey, result, 7 * 24 * 60); // 7 dias
-  return result;
-}
-// Geocodificar endereço do hotel (precisão maior para centralidade)
-async function geocodeAddress(address, city) {
-  if (!address && !city) return null;
-  const q = [address, city].filter(Boolean).join(', ');
-  const cacheKey = `geoaddr:${q}`;
-  const cached = await getCache(cacheKey);
-  if (cached) return cached;
-  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1`;
-  const json = await safeFetchJson(url, { headers: { 'User-Agent': '7Mares-Concierge/1.0' } }, 'geocode-address');
-  const best = Array.isArray(json) && json[0];
-  if (!best) return null;
-  const result = {
-    lat: parseFloat(best.lat),
-    lon: parseFloat(best.lon),
-    displayName: best.display_name,
-  };
-  await setCache(cacheKey, result, 7 * 24 * 60);
-  return result;
-}
-
-
-function isoDateRange(startISO, endISO) {
-  const start = new Date(startISO);
-  const end = new Date(endISO);
-  const days = [];
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    days.push(d.toISOString().slice(0, 10));
+// Funções geocodeDestination e geocodeAddress agora são importadas do módulo geocoding.js
+// Wrapper local para manter compatibilidade com chamadas existentes
+const geocodeWrapper = {
+  async destination(query) {
+    return geocodeDestination(supabase, query);
+  },
+  async address(addr, city) {
+    return geocodeAddress(supabase, addr, city);
   }
-  return days;
-}
+};
 
-// Clima: Open-Meteo (sem chave) fallback universal
-// Função alternativa usando WeatherAPI
-async function fetchWeatherWithWeatherAPI(lat, lon, startISO, endISO) {
-  const apiKey = process.env.WEATHERAPI_KEY;
-  if (!apiKey) {
-    console.log('WeatherAPI key não configurada, usando fallback');
-    return null;
-  }
+// Função isoDateRange agora importada do módulo date-helpers.js
 
-  try {
-    const startDate = new Date(startISO).toISOString().slice(0, 10);
-    const url = `http://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${lat},${lon}&days=10&date=${startDate}`;
-    
-    console.log('=== WEATHER SOURCE ===', { source: 'WeatherAPI', lat, lon, startDate });
-    
-    const data = await safeFetchJson(url, {}, 'weather-api');
-    
-    if (!data?.forecast?.forecastday) {
-      console.log('WeatherAPI: dados de previsão não encontrados');
-      return null;
-    }
-
-    const days = [];
-    const allDates = isoDateRange(startISO, endISO);
-    
-    for (const forecastDay of data.forecast.forecastday) {
-      const date = forecastDay.date;
-      const day = forecastDay.day;
-      
-      days.push({
-        date: date,
-        min: Math.round(day.mintemp_c),
-        max: Math.round(day.maxtemp_c),
-        condition: day.condition?.text || 'Parcialmente nublado'
-      });
-    }
-
-    // Completar datas faltantes com médias históricas
-    const have = new Set(days.map(d => d.date));
-    for (const d of allDates) {
-      if (!have.has(d)) {
-        const month = new Date(d).getMonth() + 1;
-        const cityData = weatherAverages['Belo Horizonte'] || weatherAverages['São Paulo'];
-        if (cityData && cityData[month]) {
-          days.push({
-            date: d,
-            min: cityData[month].temp_min,
-            max: cityData[month].temp_max,
-            condition: cityData[month].condition
-          });
-        } else {
-          days.push({ date: d, min: 20, max: 28, condition: 'Parcialmente nublado' });
-        }
-      }
-    }
-
-    return days.sort((a, b) => a.date.localeCompare(b.date));
-  } catch (err) {
-    console.error('WeatherAPI error:', err);
-    return null;
-  }
-}
-
-async function fetchWeatherRange(lat, lon, startISO, endISO) {
-  const cacheKey = `weather:${lat}:${lon}:${startISO}:${endISO}`;
-  const cached = await getCache(cacheKey);
-  if (cached) return cached;
-
-  // Open-Meteo limita janelas; se exceder, vamos consultar o máximo possível e completar com fallback
-  const startDate = new Date(startISO);
-  const endDate = new Date(endISO);
-  const allDates = isoDateRange(startISO, endISO);
-
-  const tryFetch = async (s, e) => {
-    const start = new Date(s).toISOString().slice(0, 10);
-    const end = new Date(e).toISOString().slice(0, 10);
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min&start_date=${start}&end_date=${end}&timezone=auto`;
-    return await safeFetchJson(url, {}, 'weather');
-  };
-
-  let days = [];
-  let weatherSource = 'Historical';
-  
-  try {
-    console.log('=== WEATHER SOURCE ===', { source: 'OpenMeteo', lat, lon, startISO, endISO });
-    
-    // Janela primária (até ~16 dias)
-    const maxDays = 16;
-    const windowEnd = new Date(startDate);
-    windowEnd.setDate(windowEnd.getDate() + (maxDays - 1));
-    const firstWindowEnd = windowEnd < endDate ? windowEnd : endDate;
-
-    const data1 = await tryFetch(startDate, firstWindowEnd);
-    const dates1 = data1?.daily?.time || [];
-    const tmax1 = data1?.daily?.temperature_2m_max || [];
-    const tmin1 = data1?.daily?.temperature_2m_min || [];
-    const codes1 = data1?.daily?.weathercode || [];
-    
-    if (dates1.length > 0) {
-      weatherSource = 'OpenMeteo';
-      for (let i = 0; i < dates1.length; i++) {
-        days.push({
-          date: dates1[i],
-          min: Math.round(tmin1[i]),
-          max: Math.round(tmax1[i]),
-          condition: weatherCodeToText(codes1[i])
-        });
-      }
-    } else {
-      throw new Error('OpenMeteo retornou dados vazios');
-    }
-
-  } catch (err) {
-    console.error('OpenMeteo error:', err.message);
-    
-    // Tentar WeatherAPI como fallback
-    const weatherAPIData = await fetchWeatherWithWeatherAPI(lat, lon, startISO, endISO);
-    if (weatherAPIData && weatherAPIData.length > 0) {
-      console.log('=== WEATHER SOURCE ===', { source: 'WeatherAPI', success: true, count: weatherAPIData.length });
-      weatherSource = 'WeatherAPI';
-      days = weatherAPIData;
-    } else {
-      console.log('=== WEATHER SOURCE ===', { source: 'Historical', success: true });
-      // Fallback final: usar médias históricas
-      weatherSource = 'Historical';
-      days = allDates.map(d => {
-        const month = new Date(d).getMonth() + 1;
-        const cityData = weatherAverages['Belo Horizonte'] || weatherAverages['São Paulo'];
-        if (cityData && cityData[month]) {
-          return {
-            date: d,
-            min: cityData[month].temp_min,
-            max: cityData[month].temp_max,
-            condition: cityData[month].condition
-          };
-        }
-        return { date: d, min: 20, max: 28, condition: 'Parcialmente nublado' };
-      });
-    }
-  }
-
-  console.log('=== WEATHER FINAL ===', { source: weatherSource, days_count: days.length });
-
-  // Ordenar por data para consistência
-  days.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
-  await setCache(cacheKey, days);
-  return days;
-}
-
-function weatherCodeToText(code) {
-  const map = {
-    0: 'Céu limpo', 1: 'Principalmente limpo', 2: 'Parcialmente nublado', 3: 'Nublado',
-    45: 'Nevoeiro', 48: 'Nevoeiro com gelo', 51: 'Garoa fraca', 53: 'Garoa', 55: 'Garoa forte',
-    61: 'Chuva fraca', 63: 'Chuva', 65: 'Chuva forte', 71: 'Neve fraca', 73: 'Neve', 75: 'Neve forte',
-    80: 'Aguaceiros fracos', 81: 'Aguaceiros', 82: 'Aguaceiros fortes', 95: 'Trovoadas'
-  };
-  return map[code] || 'Condição variável';
-}
+// Funções de clima agora estão em server/utils/weather.js
+// fetchWeatherRange e fetchWeatherWithWeatherAPI foram movidas para o módulo
 
 // Places (Google/Foursquare) – aqui retornaremos apenas estrutura básica se não houver chaves
 async function searchRestaurants(lat, lon, city, country, intents = { fine: true, localGems: true }) {
@@ -612,40 +386,7 @@ async function searchAttractions(lat, lon) {
   return results;
 }
 
-function toRad(v) { return (v * Math.PI) / 180; }
-function distanceKm(aLat, aLon, bLat, bLon) {
-  if ([aLat, aLon, bLat, bLon].some(v => typeof v !== 'number')) return null;
-  const R = 6371;
-  const dLat = toRad(bLat - aLat);
-  const dLon = toRad(bLon - aLon);
-  const lat1 = toRad(aLat);
-  const lat2 = toRad(bLat);
-  const x = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
-  const c = 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
-  return Math.round(R * c * 10) / 10;
-}
-
-function parseTimeToMin(hhmm) {
-  if (!hhmm || typeof hhmm !== 'string' || !hhmm.includes(':')) return null;
-  const [h, m] = hhmm.split(':').map(n => parseInt(n, 10));
-  if (isNaN(h) || isNaN(m)) return null;
-  return h * 60 + m;
-}
-
-function formatMinToTime(mins) {
-  const h = Math.floor(mins / 60) % 24;
-  const m = mins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-function timeInBlock(mins, block) {
-  if (!block || !block.includes('-')) return false;
-  const [s, e] = block.split('-');
-  const sm = parseTimeToMin(s);
-  const em = parseTimeToMin(e);
-  if (sm == null || em == null) return false;
-  return mins >= sm && mins <= em;
-}
+// Funções distanceKm, parseTimeToMin, formatMinToTime, timeInBlock agora estão em server/utils/date-helpers.js
 
 // Itinerário simples: distribui restaurantes e eventos ao longo dos dias
 function buildItinerary(days, params) {
@@ -921,12 +662,12 @@ function premiumWrapper(innerHtml, formData) {
 async function generatePremiumPipeline(formData) {
   const t0 = Date.now();
   const sources = [];
-  // geocode (destino e hotel)
-  const geo = await geocodeDestination(formData.destination);
+  // geocode (destino e hotel) - usando módulo extraído
+  const geo = await geocodeDestination(supabase, formData.destination);
   if (!geo) throw new Error('Destino inválido ou não encontrado');
-  const hotelGeo = await geocodeAddress(formData.address, geo.city || formData.destination);
-  // weather
-  const weather = await fetchWeatherRange(geo.lat, geo.lon, formData.checkin, formData.checkout);
+  const hotelGeo = await geocodeAddress(supabase, formData.address, geo.city || formData.destination);
+  // weather - usando módulo extraído
+  const weather = await fetchWeatherRange(supabase, geo.lat, geo.lon, formData.checkin, formData.checkout);
   sources.push({ type: 'weather', provider: 'open-meteo' });
   // places
   const centerLat = hotelGeo?.lat ?? geo.lat;
@@ -997,99 +738,10 @@ async function generatePremiumPipeline(formData) {
   };
 }
 
-app.post("/api/generate-pdf", async (req, res, next) => {
-  try {
-    const { htmlContent, filename } = req.body ?? {};
-
-    if (!htmlContent || !filename) {
-      const error = new Error("Missing htmlContent or filename");
-      error.status = 400;
-      throw error;
-    }
-
-    const browser = await chromium.launch();
-    const page = await browser.newPage();
-
-    await page.setContent(htmlContent);
-
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      margin: { top: "18mm", right: "18mm", bottom: "18mm", left: "18mm" },
-      printBackground: true,
-    });
-
-    await browser.close();
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-    res.send(pdfBuffer);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Regeneração parcial (na prática, reexecuta o pipeline com o contexto salvo)
-app.post("/api/concierge/regenerate", async (req, res, next) => {
-  try {
-    const { reportId, type, date } = req.body || {};
-    if (!reportId) return res.status(400).json({ error: true, message: 'reportId é obrigatório' });
-
-    const { data: existing, error: fetchError } = await supabase
-      .from('concierge_reports')
-      .select('*')
-      .eq('id', reportId)
-      .single();
-    if (fetchError || !existing) return res.status(404).json({ error: true, message: 'Relatório não encontrado' });
-
-    // reconstruir formData mínimo a partir do contexto salvo
-    let ctx = existing.enriched_json?.context || {};
-    const formData = {
-      clientName: existing.client_name || 'Cliente',
-      destination: ctx.destination || existing.destination,
-      checkin: ctx.checkin || existing.checkin,
-      checkout: ctx.checkout || existing.checkout,
-      travelType: ctx.travelType || existing.travel_type,
-      budget: ctx.budget || existing.budget,
-      adults: existing.adults || 1,
-      children: existing.children || 0,
-      hotel: existing.hotel || undefined,
-      address: existing.address || undefined,
-      interests: Array.isArray(existing.interests) ? existing.interests : [],
-      observations: existing.observations || undefined,
-    };
-
-    const result = await generatePremiumPipeline(formData);
-
-    // atualizar registro
-    const { data: updated, error: updError } = await supabase
-      .from('concierge_reports')
-      .update({
-        report_content: result.report.content,
-        report_html: result.report.html,
-        processing_time_ms: result.report.metadata.processingTime,
-        openai_model: result.report.metadata.model,
-        openai_tokens_used: result.report.metadata.tokensUsed,
-        enriched_json: result.enriched_json,
-        data_sources: result.sources,
-        updated_at: new Date().toISOString(),
-        status: 'generated'
-      })
-      .eq('id', reportId)
-      .select()
-      .single();
-    if (updError) return res.status(500).json({ error: true, message: 'Erro ao atualizar relatório' });
-
-    res.json({ success: true, report: {
-      id: updated.id,
-      content: result.report.content,
-      html: result.report.html,
-      metadata: result.report.metadata
-    }, enriched: result.enriched_json });
-  } catch (error) {
-    console.error('Erro na regeneração:', error);
-    next(error);
-  }
-});
+// =============================
+// Funções de Geração (ainda no server.cjs - podem ser extraídas depois)
+// =============================
+// Estas funções ainda estão aqui e precisam ser definidas antes das rotas
 
 // Função para gerar relatório de concierge (versão simplificada)
 function generateConciergeReport(formData) {
@@ -1525,248 +1177,27 @@ function generateConciergeReportEnriched(formData) {
   };
 }
 
-// Endpoint para gerar relatório de Concierge
-app.post("/api/concierge/generate", async (req, res, next) => {
-  try {
-    console.log('=== REQUEST BODY ===');
-    console.log(JSON.stringify(req.body, null, 2));
-    console.log('===================');
-    
-    const {
-      clientName,
-      destination,
-      checkin,
-      checkout,
-      travelType,
-      budget,
-      adults,
-      children,
-      hotel,
-      address,
-      interests,
-      observations,
-      agentName
-    } = req.body;
+// Endpoint para gerar relatório de Concierge (com rate limiting específico)
+// Rota /api/concierge/generate agora está em server/routes/concierge.js
+// Código removido - usando registerConciergeRoutes
 
-    // Validação básica
-    if (!clientName || !destination || !checkin || !checkout || !travelType || !budget) {
-      return res.status(400).json({
-        error: true,
-        message: "Campos obrigatórios: clientName, destination, checkin, checkout, travelType, budget"
-      });
-    }
+// =============================
+// Registrar Rotas Modulares
+// =============================
+// PDF Routes - usando módulo extraído
+registerPdfRoutes(app, pdfLimiter, validatePdfGeneration);
 
-    let report, enriched_json, sources;
-    console.log('=== FEATURE_USE_AI ===', FEATURE_USE_AI);
-    
-    if (FEATURE_USE_AI) {
-      try {
-        console.log('=== TENTANDO PIPELINE IA ===');
-        // Tentar pipeline premium com IA
-        const result = await generatePremiumPipeline({
-          clientName,
-          destination,
-          checkin,
-          checkout,
-          travelType,
-          budget,
-          adults: adults || 1,
-          children: children || 0,
-          hotel,
-          address,
-          interests: interests || [],
-          observations
-        });
-        console.log('=== PIPELINE IA SUCESSO ===', {
-          hasReport: !!result.report,
-          hasEnriched: !!result.enriched_json,
-          enrichedKeys: result.enriched_json ? Object.keys(result.enriched_json) : 'null'
-        });
-        
-        // Verificar se enriched_json é null ou vazio
-        if (!result.enriched_json || Object.keys(result.enriched_json).length === 0) {
-          console.warn('=== PIPELINE IA RETORNOU ENRICHED VAZIO, USANDO FALLBACK ===');
-          throw new Error('Pipeline IA retornou enriched_json vazio');
-        }
-        
-        report = result.report;
-        enriched_json = result.enriched_json;
-        sources = result.sources;
-      } catch (aiError) {
-        console.warn('=== PIPELINE IA FALHOU ===', aiError.message);
-        console.warn('Stack trace:', aiError.stack);
-        // Usar gerador local melhorado como fallback
-        console.log('=== USANDO FALLBACK LOCAL ===');
-        const localResult = generateConciergeReportEnriched({
-          clientName,
-          destination,
-          checkin,
-          checkout,
-          travelType,
-          budget,
-          adults: adults || 1,
-          children: children || 0,
-          hotel,
-          address,
-          interests: interests || [],
-          observations
-        });
-        console.log('=== FALLBACK LOCAL SUCESSO ===', {
-          hasReport: !!localResult.report,
-          hasEnriched: !!localResult.enriched_json,
-          enrichedKeys: localResult.enriched_json ? Object.keys(localResult.enriched_json) : 'null'
-        });
-        report = localResult.report;
-        enriched_json = localResult.enriched_json;
-        sources = localResult.sources;
-      }
-    } else {
-      // Usar gerador local melhorado
-      const localResult = generateConciergeReportEnriched({
-        clientName,
-        destination,
-        checkin,
-        checkout,
-        travelType,
-        budget,
-        adults: adults || 1,
-        children: children || 0,
-        hotel,
-        address,
-        interests: interests || [],
-        observations
-      });
-      report = localResult.report;
-      enriched_json = localResult.enriched_json;
-      sources = localResult.sources;
-    }
-
-    // Salvar no Supabase (com fallback sem DB)
-    let reportId = null;
-    try {
-      const { data, error } = await supabase
-        .from('concierge_reports')
-        .insert({
-          agent_name: agentName,
-          client_name: clientName,
-          destination,
-          checkin,
-          checkout,
-          travel_type: travelType,
-          budget,
-          adults: adults || 1,
-          children: children || 0,
-          hotel,
-          address,
-          interests: interests || [],
-          observations,
-          report_content: report.content,
-          report_html: report.html,
-          processing_time_ms: report.metadata.processingTime,
-          openai_model: report.metadata.model,
-          openai_tokens_used: report.metadata.tokensUsed,
-          status: 'generated',
-          enriched_json: enriched_json || null,
-          data_sources: sources || null
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      reportId = data?.id || null;
-    } catch (dbErr) {
-      console.error('=== ERRO SUPABASE (fallback sem DB) ===');
-      console.error(dbErr);
-      try {
-        const { randomUUID } = require('crypto');
-        reportId = randomUUID();
-      } catch {
-        reportId = `${Date.now()}`;
-      }
-    }
-
-    console.log('=== RESPONSE FINAL ===', {
-      hasReport: !!report,
-      hasEnriched: !!enriched_json,
-      enrichedKeys: enriched_json ? Object.keys(enriched_json) : 'null',
-      enrichedType: typeof enriched_json
-    });
-    
-    res.json({
-      success: true,
-      report: {
-        id: reportId,
-        content: report.content,
-        html: report.html,
-        metadata: report.metadata
-      },
-      enriched: enriched_json || null
-    });
-
-  } catch (error) {
-    console.error('Erro no endpoint concierge:', error);
-    next(error);
-  }
-});
-
-// Endpoint para buscar histórico de relatórios
-app.get("/api/concierge/history", async (req, res, next) => {
-  try {
-    const { limit = 10 } = req.query;
-    
-    const { data, error } = await supabase
-      .from('concierge_reports')
-      .select('id, created_at, client_name, destination, travel_type, budget, status')
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
-
-    if (error) {
-      console.error('Erro ao buscar histórico:', error);
-      return res.status(500).json({
-        error: true,
-        message: "Erro ao buscar histórico de relatórios"
-      });
-    }
-
-    res.json({
-      success: true,
-      reports: data || []
-    });
-
-  } catch (error) {
-    console.error('Erro no endpoint histórico:', error);
-    next(error);
-  }
-});
-
-// Endpoint para buscar relatório específico
-app.get("/api/concierge/report/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    
-    const { data, error } = await supabase
-      .from('concierge_reports')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      console.error('Erro ao buscar relatório:', error);
-      return res.status(404).json({
-        error: true,
-        message: "Relatório não encontrado"
-      });
-    }
-
-    res.json({
-      success: true,
-      report: data
-    });
-
-  } catch (error) {
-    console.error('Erro no endpoint relatório:', error);
-    next(error);
-  }
-});
+// Concierge Routes - usando módulo extraído
+registerConciergeRoutes(
+  app,
+  supabase,
+  conciergeLimiter,
+  validateConciergeForm,
+  validateDateRange,
+  generatePremiumPipeline, // definida acima
+  generateConciergeReportEnriched, // definida acima
+  FEATURE_USE_AI
+);
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {

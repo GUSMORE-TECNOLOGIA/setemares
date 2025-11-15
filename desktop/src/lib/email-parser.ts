@@ -89,6 +89,22 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
     const ravMatch = text.match(/du\s+(\d+)%/i);
     const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
     
+    // Detectar incentivo percentual - formato: "in 3%" ou "incentivo 3%"
+    const incentivoPercentMatch = text.match(/\bin\s+(\d+)%/i) || text.match(/\bincentivo\s+(\d+)%/i);
+    const incentivoPercent = incentivoPercentMatch ? parseInt(incentivoPercentMatch[1]) : undefined;
+    
+    // Detectar Fee USD - formato: "Fee USD 50,00" ou "+ Fee USD 50,00"
+    const feeMatch = text.match(/(?:\+|\s)?fee\s+usd\s+([\d.,]+)/i);
+    const feeUSD = feeMatch ? sanitizeNumber(feeMatch[1]) : undefined;
+    
+    // Detectar multa de alteração - formato: "Multa de alteração USD 200,00"
+    const multaMatch = text.match(/multa\s+(?:de\s+)?(?:altera[çc][ãa]o|change)\s+usd\s+([\d.,]+)/i);
+    const multaUSD = multaMatch ? sanitizeNumber(multaMatch[1]) : undefined;
+    
+    // Detectar reembolso - formato: "Reembolso USD 400,00" ou "Reembolso usd 400.00"
+    const reembolsoMatch = text.match(/reembolso\s+usd\s+([\d.,]+)/i);
+    const reembolsoUSD = reembolsoMatch ? sanitizeNumber(reembolsoMatch[1]) : undefined;
+    
     console.log(`✈️ Segmentos encontrados:`, segments);
     console.log(`💰 Tarifas encontradas:`, fares);
     console.log(`💳 Pagamento:`, payment);
@@ -96,6 +112,10 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
     console.log(`📝 Notas:`, notes);
     console.log(`📊 Parcelas:`, numParcelas);
     console.log(`📊 RAV:`, ravPercent);
+    console.log(`📊 Incentivo %:`, incentivoPercent);
+    console.log(`📊 Fee USD:`, feeUSD);
+    console.log(`📊 Multa USD:`, multaUSD);
+    console.log(`📊 Reembolso USD:`, reembolsoUSD);
     
     return {
       label: `Opção ${idx + 1}`,
@@ -105,7 +125,11 @@ export function parseEmailToOptions(raw: string): ParsedEmail {
       fares: fares.map(f => ({ ...f, includeInPdf: true })),
       baggage,
       numParcelas,
-      ravPercent
+      ravPercent,
+      incentivoPercent,
+      feeUSD,
+      changePenalty: multaUSD ? `USD ${multaUSD.toFixed(2)}` : undefined,
+      refundable: reembolsoUSD ? `USD ${reembolsoUSD.toFixed(2)}` : undefined
     };
   });
   
@@ -245,23 +269,34 @@ function parseFareLines(text: string): ParsedFare[] {
   for (const line of lines) {
     const trimmed = line.trim();
     
-    // Regex para tarifas aceitando 2 formatos:
+    // Regex para tarifas aceitando múltiplos formatos:
     // 1) "tarifa usd 2999,00 + txs usd 90,00 *Exe/Internos em eco"
     // 2) "USD2999,00 + txs USD90,00 * exe"
-    const fareMatch =
-      trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*txs\s+usd\s+([\d.,]+)\s*\*(.+)$/i) ||
-      trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*txs\s+usd\s*([\d.,]+)\s*\*\s*(.+)$/i);
+    // 3) "Tarifa USD 7729,00 + taxas USD 266,30 + Fee USD 50,00" (sem categoria)
+    // 4) "Tarifa USD 6500,00 + taxas USD 2539,30" (sem categoria)
+    // Primeiro tentar com categoria (com asterisco)
+    let fareMatch = trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*tx(?:as|s)\s+usd\s+([\d.,]+)\s*\*(.+)/i) ||
+                    trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*tx(?:as|s)\s+usd\s*([\d.,]+)\s*\*\s*(.+)/i);
+    
+    // Se não encontrou com categoria, tentar sem categoria (pode ter "+ Fee USD" no final)
+    if (!fareMatch) {
+      fareMatch = trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*tx(?:as|s)\s+usd\s+([\d.,]+)(?:\s*\+\s*.+)?$/i) ||
+                  trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*tx(?:as|s)\s+usd\s*([\d.,]+)(?:\s*\+\s*.+)?$/i);
+    }
     
     if (fareMatch) {
-      const [, baseFareStr, baseTaxesStr, label] = fareMatch;
+      const baseFareStr = fareMatch[1];
+      const baseTaxesStr = fareMatch[2];
+      const label = fareMatch[3]; // Pode ser undefined se não houver categoria
       
       const baseFare = sanitizeNumber(baseFareStr);
       const baseTaxes = sanitizeNumber(baseTaxesStr);
       
       // Usar o label completo como fareClass para preservar descrições compostas
       // Ex: "Vai Eco/Volta Pre", "Exe/Internos em eco", etc.
-      const fareClass = label.trim();
-      const paxType = paxTypeFromLabel(label);
+      // Se não houver label (opcional), usar "Tarifa" como padrão
+      const fareClass = label?.trim() || 'Tarifa';
+      const paxType = label ? paxTypeFromLabel(label) : 'ADT';
       
       fares.push({
         fareClass,
@@ -270,6 +305,23 @@ function parseFareLines(text: string): ParsedFare[] {
         baseTaxes,
         includeInPdf: true,
         notes: undefined // Não usar notes separadas, o fareClass já contém tudo
+      });
+      continue;
+    }
+
+    // Formato alternativo: "Tarifa USD X + taxas USD Y" (pode ter "+ Fee USD" no final)
+    const alternateFormatMatch =
+      trimmed.match(/^tarifa\s+usd\s+([\d.,]+)\s*\+\s*(?:taxas|txs)\s+usd\s+([\d.,]+)(?:\s*\+\s*.+)?$/i) ||
+      trimmed.match(/^usd\s*([\d.,]+)\s*\+\s*(?:taxas|txs)\s+usd\s*([\d.,]+)(?:\s*\+\s*.+)?$/i);
+    if (alternateFormatMatch) {
+      const [, baseFareStr, baseTaxesStr] = alternateFormatMatch;
+      fares.push({
+        fareClass: 'Tarifa',
+        paxType: 'ADT',
+        baseFare: sanitizeNumber(baseFareStr),
+        baseTaxes: sanitizeNumber(baseTaxesStr),
+        includeInPdf: true,
+        notes: undefined
       });
       continue;
     }

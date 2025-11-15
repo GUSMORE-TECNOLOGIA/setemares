@@ -13,6 +13,7 @@ interface AirportFormData {
   name: string;
   city_iata: string;
   country: string;
+  tz?: string;
   active?: boolean;
 }
 
@@ -41,6 +42,7 @@ export function AirportsCatalog() {
     name: '',
     city_iata: '',
     country: '',
+    tz: '',
     active: true
   });
 
@@ -116,6 +118,7 @@ export function AirportsCatalog() {
       name: '',
       city_iata: '',
       country: '',
+      tz: '',
       active: true
     });
     setIsModalOpen(true);
@@ -129,6 +132,7 @@ export function AirportsCatalog() {
       name: airport.name,
       city_iata: airport.city_iata,
       country: airport.country,
+      tz: airport.tz || '',
       active: airport.active
     });
     setIsModalOpen(true);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Database, MapPin, Plane, Building2, AlertTriangle } from 'lucide-react';
 import { AirportsCatalog } from './AirportsCatalog';
 import { CitiesCatalog } from './CitiesCatalog';

@@ -12,6 +12,10 @@ export type ParsedOption = {
   baggage?: ParsedBaggage[];   // opcional
   numParcelas?: number;        // número de parcelas detectado
   ravPercent?: number;         // percentual de RAV detectado
+  incentivoPercent?: number;  // percentual de incentivo detectado (ex: "in 3%")
+  feeUSD?: number;            // fee em USD detectado (ex: "Fee USD 50,00")
+  changePenalty?: string;     // multa de alteração (ex: "USD 200,00")
+  refundable?: string;        // valor de reembolso (ex: "USD 400,00")
 };
 
 export type ParsedSegment = {

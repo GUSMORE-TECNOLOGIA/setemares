@@ -8,6 +8,7 @@ import { QuoteMetadataFields } from "@/components/quote/QuoteMetadataFields";
 import { useHeaderActions } from "../../../shared/hooks/useHeaderActions";
 import { BookingsHeaderActions } from "../components/BookingsHeaderActions";
 import { useBookingsController } from "../hooks/useBookingsController";
+import { computeTotals } from "@/lib/pricing";
 
 export function BookingsPage() {
   const {
@@ -81,23 +82,22 @@ export function BookingsPage() {
   const summaryPricingResult = useMemo(() => {
     if (!summaryData?.fares?.length) return pricingResult;
     
-    // Calcular totais baseados no summaryData
+    // Calcular totais baseados no summaryData usando computeTotals para consistência
     const totalBaseFare = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseFare || fare.tarifa || 0), 0);
     const totalBaseTaxes = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseTaxes || fare.taxas || 0), 0);
     const ravPercent = summaryData.ravPercent || 10;
     const incentivoPercent = summaryData.incentivoPercent || 0;
+    const feeUSD = summaryData.feeUSD || 0;
     
-    const ravValue = totalBaseFare * (ravPercent / 100);
-    const incentivoValue = totalBaseFare * (incentivoPercent / 100);
-    
-    return {
+    // Usar computeTotals para garantir consistência com o resto do sistema
+    return computeTotals({
       tarifa: totalBaseFare,
       taxasBase: totalBaseTaxes,
-      rav: ravValue,
-      comissao: ravValue + incentivoValue,
-      taxasExibidas: totalBaseTaxes + ravValue + incentivoValue,
-      total: totalBaseFare + totalBaseTaxes + ravValue + incentivoValue
-    };
+      ravPercent,
+      fee: feeUSD,
+      incentivoPercent,
+      changePenalty: 'USD 500 + diferença tarifária'
+    });
   }, [summaryData, pricingResult]);
 
   return (
@@ -141,9 +141,9 @@ export function BookingsPage() {
                 onPricingChange={setPricingResultFromEngine}
                 onSave={(updatedCategories) => updateOptionPricing(optionIndex, updatedCategories)}
                 resetTrigger={resetTrigger}
-                ravPercent={option.ravPercent}
-                fee={0}
-                incentivoPercent={option.incentivoPercent}
+                ravPercent={option.ravPercent || 10}
+                fee={option.feeUSD || 0}
+                incentivoPercent={option.incentivoPercent || 0}
                 numParcelas={option.numParcelas}
               />
             ))
@@ -163,7 +163,7 @@ export function BookingsPage() {
               onSave={(updatedCategories) => updateSimplePricing(updatedCategories)}
               resetTrigger={resetTrigger}
               ravPercent={simplePnrData?.ravPercent}
-              fee={0}
+              fee={simplePnrData?.feeUSD || 0}
               incentivoPercent={simplePnrData?.incentivoPercent}
               numParcelas={simplePnrData?.numParcelas}
             />

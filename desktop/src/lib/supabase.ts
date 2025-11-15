@@ -1,12 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_CONFIG, validateConfig } from './config';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://dgverpbhxtslmfrrcwwj.supabase.co";
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRndmVycGJoeHRzbG1mcnJjd3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgzMDY0OTEsImV4cCI6MjA3Mzg4MjQ5MX0.q1OogIBKY4GIzc0wwLnFfzq3lZt3JMHAj0f832kqtbs";
+// Validar configuração no carregamento do módulo
+const configValidation = validateConfig();
+if (!configValidation.valid) {
+  console.error('❌ Erros de configuração no frontend:');
+  configValidation.errors.forEach(error => console.error(`  - ${error}`));
+  throw new Error('Configuração inválida. Verifique as variáveis de ambiente.');
+}
 
-console.log('Frontend Supabase URL:', supabaseUrl ? 'Configurado' : 'Não configurado');
-console.log('Frontend Supabase Key:', supabaseAnonKey ? 'Configurado' : 'Não configurado');
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
 
 export async function testSupabaseConnection() {
   try {

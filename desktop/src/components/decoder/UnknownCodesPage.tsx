@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, Search, RefreshCw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -80,15 +80,15 @@ export function UnknownCodesPage() {
 
   const getStatusBadge = (code: UnknownCodeData) => {
     if (code.resolved) {
-      return <Badge color="green">Resolvido</Badge>;
+      return <Badge variant="success">Resolvido</Badge>;
     }
     if (code.attempts >= 5) {
-      return <Badge color="red">Crítico</Badge>;
+      return <Badge variant="error">Crítico</Badge>;
     }
     if (code.attempts >= 3) {
-      return <Badge color="yellow">Alto</Badge>;
+      return <Badge variant="warning">Alto</Badge>;
     }
-    return <Badge color="gray">Baixo</Badge>;
+    return <Badge variant="default">Baixo</Badge>;
   };
 
   const getPriorityColor = (attempts: number) => {
@@ -99,46 +99,46 @@ export function UnknownCodesPage() {
 
   const columns = [
     {
-      key: 'code',
+      key: 'code' as keyof UnknownCodeData,
       label: 'Código',
-      render: (code: UnknownCodeData) => (
+      render: (_value: unknown, code: UnknownCodeData) => (
         <span className="font-mono font-bold text-slate-200">{code.code}</span>
       )
     },
     {
-      key: 'context',
+      key: 'context' as keyof UnknownCodeData,
       label: 'Contexto',
-      render: (code: UnknownCodeData) => (
+      render: (_value: unknown, code: UnknownCodeData) => (
         <span className="text-slate-300">{code.context || '—'}</span>
       )
     },
     {
-      key: 'attempts',
+      key: 'attempts' as keyof UnknownCodeData,
       label: 'Tentativas',
-      render: (code: UnknownCodeData) => (
+      render: (_value: unknown, code: UnknownCodeData) => (
         <span className={`font-bold ${getPriorityColor(code.attempts)}`}>
           {code.attempts}
         </span>
       )
     },
     {
-      key: 'last_attempt',
+      key: 'last_attempt' as keyof UnknownCodeData,
       label: 'Última Tentativa',
-      render: (code: UnknownCodeData) => (
+      render: (_value: unknown, code: UnknownCodeData) => (
         <span className="text-slate-400">
           {new Date(code.last_attempt).toLocaleDateString('pt-BR')}
         </span>
       )
     },
     {
-      key: 'status',
+      key: 'resolved' as keyof UnknownCodeData,
       label: 'Status',
-      render: (code: UnknownCodeData) => getStatusBadge(code)
+      render: (_value: unknown, code: UnknownCodeData) => getStatusBadge(code)
     },
     {
-      key: 'actions',
+      key: 'code' as keyof UnknownCodeData, // Reutilizar 'code' para actions
       label: 'Ações',
-      render: (code: UnknownCodeData) => (
+      render: (_value: unknown, code: UnknownCodeData) => (
         <div className="flex gap-2">
           {!code.resolved && (
             <Button
@@ -218,21 +218,21 @@ export function UnknownCodesPage() {
         </div>
         <div className="flex gap-2">
           <Button
-            variant={filterResolved === 'all' ? 'default' : 'outline'}
+            variant={filterResolved === 'all' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilterResolved('all')}
           >
             Todos
           </Button>
           <Button
-            variant={filterResolved === 'unresolved' ? 'default' : 'outline'}
+            variant={filterResolved === 'unresolved' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilterResolved('unresolved')}
           >
             Pendentes
           </Button>
           <Button
-            variant={filterResolved === 'resolved' ? 'default' : 'outline'}
+            variant={filterResolved === 'resolved' ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setFilterResolved('resolved')}
           >

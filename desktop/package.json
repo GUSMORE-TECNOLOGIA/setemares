@@ -8,18 +8,24 @@
     "build": "vite build",
     "build:analyze": "vite build --mode production",
     "preview": "vite preview",
-    "server": "node server.js",
+    "server": "node server.cjs",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "vercel-build": "vite build",
     "fix": "eslint \"src/**/*.{ts,tsx}\" --fix",
-    "bundle:analyze": "npm run build:analyze && echo 'Bundle analysis disponível em dist/bundle-analysis.html'"
+    "bundle:analyze": "npm run build:analyze && echo 'Bundle analysis disponível em dist/bundle-analysis.html'",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/fontkit": "^2.0.8",
     "@types/node": "^24.5.2",
     "@types/react": "^19.1.13",
@@ -30,8 +36,10 @@
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-unused-imports": "^4.0.1",
+    "jsdom": "^27.2.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "vitest": "^4.0.9"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -60,14 +68,14 @@
     "openai": "^6.2.0",
     "playwright": "^1.55.0",
     "postcss": "^8.5.6",
-    "rollup-plugin-visualizer": "^6.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.62.0",
     "react-number-format": "^5.4.4",
+    "rollup-plugin-visualizer": "^6.0.4",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.4.17",
     "vite": "^7.1.6",
-    "zod": "^4.1.9"
+    "zod": "^4.1.12"
   }
 }

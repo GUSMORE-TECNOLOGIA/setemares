@@ -25,6 +25,7 @@ export interface ParsedPNR {
   numParcelas?: number; // Número de parcelas detectado no PNR
   ravPercent?: number; // Percentual de RAV detectado no PNR
   incentivoPercent?: number; // Percentual de Incentivo detectado no PNR
+  feeUSD?: number; // Fee em USD detectado no PNR
 }
 
 export interface DecodedFlight {
@@ -123,9 +124,10 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const lines = filteredText.split('\n').filter(line => line.trim());
   const trechos = lines.filter(line => /^[A-Z]{2}\s+\d+/.test(line.trim()));
   
-  // Detectar moeda do PNR
+  // Detectar moeda do PNR - procura por padrões como "EUR6500" ou "USD 6500" ou "usd" no texto
   let detectedCurrency = 'USD'; // Default
-  const currencyMatch = pnrText.match(/\b(usd|eur|brl|gbp|cad|aud)\b/i);
+  const currencyMatch = pnrText.match(/\b(usd|eur|brl|gbp|cad|aud)\b/i) || 
+                        pnrText.match(/(EUR|USD|BRL|GBP|CAD|AUD)\d+/i);
   if (currencyMatch) {
     detectedCurrency = currencyMatch[1].toUpperCase();
   }
@@ -303,6 +305,14 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const ravMatch = pnrText.match(/du\s+(\d+)%/i);
   const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
   
+  // Detectar incentivo percentual - formato: "in 3%" ou "incentivo 3%"
+  const incentivoPercentMatch = pnrText.match(/\bin\s+(\d+)%/i) || pnrText.match(/\bincentivo\s+(\d+)%/i);
+  const incentivoPercent = incentivoPercentMatch ? parseInt(incentivoPercentMatch[1]) : undefined;
+  
+  // Detectar Fee USD - formato: "Fee USD 50,00" ou "+ Fee USD 50,00"
+  const feeMatch = pnrText.match(/(?:\+|\s)?fee\s+usd\s+([\d.,]+)/i);
+  const feeUSD = feeMatch ? parseFloat(feeMatch[1].replace(',', '.')) : undefined;
+  
   // Decodificar segmentos
   const segments = trechos.map(trecho => {
     const parts = trecho.trim().split(/\s+/);
@@ -340,9 +350,12 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     segments,
     paymentTerms,
     baggage,
+    bagagem_hint: baggage, // Alias para compatibilidade
     notes,
     numParcelas,
     ravPercent,
+    incentivoPercent,
+    feeUSD,
   };
 }
 
