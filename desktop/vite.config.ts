@@ -20,10 +20,13 @@ export default defineConfig(({ mode }) => {
 		resolve: {
 			alias: { '@': path.resolve(__dirname, 'src') }
 		},
-		define: {
-			'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-			'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
-		},
+	define: {
+		'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
+		'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY),
+		'import.meta.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY || ''),
+		'import.meta.env.USE_AI_CONCIERGE': JSON.stringify(env.USE_AI_CONCIERGE || 'false'),
+		'import.meta.env.CACHE_TTL_MIN': JSON.stringify(env.CACHE_TTL_MIN || '360'),
+	},
 		server: {
 			proxy: {
 				'/api': {

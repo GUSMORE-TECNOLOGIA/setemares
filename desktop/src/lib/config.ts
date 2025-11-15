@@ -26,9 +26,22 @@ export const SUPABASE_CONFIG = {
 };
 
 // OpenAI Configuration (opcional)
+// Desabilita automaticamente se a API key for um placeholder ou vazia
+function isValidApiKey(key: string | undefined): boolean {
+  if (!key) return false;
+  // Considera placeholder se começa com 'your-' ou 'sk-your-' ou vazio
+  const placeholderPatterns = ['your-', 'sk-your-', ''];
+  return !placeholderPatterns.some(pattern => key.startsWith(pattern));
+}
+
+const rawApiKey = getEnv('OPENAI_API_KEY');
+const shouldEnableConcierge = getEnv('USE_AI_CONCIERGE', 'true').toLowerCase() === 'true';
+const hasValidApiKey = isValidApiKey(rawApiKey);
+
 export const OPENAI_CONFIG = {
-  apiKey: getEnv('OPENAI_API_KEY'),
-  enabled: getEnv('USE_AI_CONCIERGE', 'true').toLowerCase() === 'true',
+  apiKey: hasValidApiKey ? rawApiKey : '',
+  // Só habilita se USE_AI_CONCIERGE=true E tiver uma API key válida
+  enabled: shouldEnableConcierge && hasValidApiKey,
 };
 
 // Concierge Configuration
@@ -53,9 +66,8 @@ export function validateConfig(): { valid: boolean; errors: string[] } {
     errors.push('VITE_SUPABASE_ANON_KEY é obrigatória');
   }
 
-  if (OPENAI_CONFIG.enabled && !OPENAI_CONFIG.apiKey) {
-    errors.push('OPENAI_API_KEY é obrigatória quando USE_AI_CONCIERGE=true');
-  }
+  // Não valida OPENAI_API_KEY - se inválida, o Concierge é automaticamente desabilitado
+  // Isso permite que o app funcione sem a API key do OpenAI
 
   return {
     valid: errors.length === 0,
