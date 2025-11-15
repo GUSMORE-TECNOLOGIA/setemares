@@ -208,7 +208,9 @@ function parseSegments(text: string): ParsedSegment[] {
     // Captura: AA 950 12FEB GRUJFK SS2 2235 0615 13FEB
     // Captura: UA 844 07JAN GRUORD HS1 2145 #0530
     // Captura: DL 104 14OCT GRUATL HS1 2250 #0735
-    const newFormatMatch = trimmed.match(/^([A-Z0-9]{2,3})\s+(\d{2,5})\s+(\d{1,2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})(\*?)\s*([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})(\s+(\d{1,2}[A-Z]{3}))?/);
+    // Captura: AZ 679 25NOV GRUFCO HS2 2040 #1200
+    // Captura: LA 8072 25NOV GRUMXP HK2 1800 #0915
+    const newFormatMatch = trimmed.match(/^([A-Z0-9]{2,3})\s+(\d{2,5})\s+(\d{1,2}[A-Z]{3})\s+([A-Z]{3})([A-Z]{3})(\*?)\s+([A-Z]{2}\d)\s+(\d{3,4})\s+(\#?\d{3,4})(\s+(\d{1,2}[A-Z]{3}))?/);
     
     if (newFormatMatch) {
       const [, carrier, flight, depDate, depAirport, arrAirport, asterisk, status, depTime, arrTime, , arrDate] = newFormatMatch;

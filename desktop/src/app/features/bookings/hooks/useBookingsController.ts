@@ -125,8 +125,22 @@ async function decodeSegments(segments: ParsedSegment[], optionLabel?: string): 
 
   const trechos = segments.map((segment) => {
     try {
-      const depTime = segment.depTimeISO ? segment.depTimeISO.split('T')[1]?.substring(0, 5) : '0000';
-      const arrTime = segment.arrTimeISO ? segment.arrTimeISO.split('T')[1]?.substring(0, 5) : '0000';
+      // Extrair horário do ISO e converter de HH:MM para HHMM (formato esperado pelo parser)
+      const depTimeISO = segment.depTimeISO ? segment.depTimeISO.split('T')[1]?.substring(0, 5) : '00:00';
+      const arrTimeISO = segment.arrTimeISO ? segment.arrTimeISO.split('T')[1]?.substring(0, 5) : '00:00';
+      
+      // Converter de HH:MM para HHMM (remover os dois pontos)
+      const depTime = depTimeISO.replace(':', '');
+      // Verificar se é voo noturno (chegada no dia seguinte) e adicionar # se necessário
+      let arrTime = arrTimeISO.replace(':', '');
+      if (segment.arrTimeISO && segment.depTimeISO) {
+        const depDate = new Date(segment.depTimeISO);
+        const arrDate = new Date(segment.arrTimeISO);
+        // Se a data de chegada é diferente da data de partida, é voo noturno
+        if (arrDate.toDateString() !== depDate.toDateString()) {
+          arrTime = `#${arrTime}`;
+        }
+      }
 
       let dateStr = '01JAN';
       if (segment.depTimeISO) {
@@ -145,7 +159,9 @@ async function decodeSegments(segments: ParsedSegment[], optionLabel?: string): 
         return null;
       }
 
-      return `${segment.carrier} ${segment.flight} ${dateStr} ${segment.depAirport}${segment.arrAirport} HS1 ${depTime} ${arrTime}`;
+      // Usar a classe do segmento se disponível, senão usar HS1 como padrão
+      const status = segment.status || 'HS1';
+      return `${segment.carrier} ${segment.flight} ${dateStr} ${segment.depAirport}${segment.arrAirport} ${status} ${depTime} ${arrTime}`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro ao processar segmento';
       logger.error('Erro ao processar segmento', { segment, error: errorMessage, optionLabel }, 'decodeSegments');

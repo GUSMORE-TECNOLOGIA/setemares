@@ -377,20 +377,74 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     console.log('🔍 Trecho original:', trecho);
     console.log('🔍 Parts divididas:', parts);
     
+    // Função para detectar se uma string é uma classe de voo (ex: HS2, HK1, SS1)
+    const isBookingClass = (str: string): boolean => {
+      // Classe geralmente é 2-3 letras seguidas de 1-2 dígitos (HS2, HK1, SS1, J2, Y1, etc.)
+      return /^[A-Z]{2,3}\d{1,2}$/.test(str);
+    };
+    
+    // Função para detectar se uma string é um horário (4 dígitos ou # seguido de 4 dígitos)
+    const isTime = (str: string): boolean => {
+      return /^#?\d{3,4}$/.test(str) || /^\d{2}:\d{2}$/.test(str);
+    };
+    
     // Tentar diferentes formatos
     let cia, flight, dateStr, route, depTime, arrTime, arrDate;
+    let classIndex = -1;
     
     // Formato novo: "AA 950 12FEB GRUJFK SS2 2235 0615 13FEB"
     if (parts.length >= 8) {
-      [cia, flight, dateStr, route, , depTime, arrTime, arrDate] = parts;
+      [cia, flight, dateStr, route] = parts.slice(0, 4);
+      // Procurar classe após a rota
+      classIndex = parts.findIndex((p, i) => i >= 4 && isBookingClass(p));
+      if (classIndex >= 0) {
+        depTime = parts[classIndex + 1];
+        arrTime = parts[classIndex + 2];
+        arrDate = parts[classIndex + 3];
+      } else {
+        [, , , , depTime, arrTime, arrDate] = parts;
+      }
     } 
-    // Formato: "DL  104   14OCT GRUATL HS1  2250  #0735" ou "AF  459   16NOV GRUCDG   2040  #1150"
+    // Formato: "AZ 679 25NOV GRUFCO HS2 2040 #1200" ou "DL 104 14OCT GRUATL HS1 2250 #0735"
+    // ou "AF 459 16NOV GRUCDG 2040 #1150" (sem classe)
     else if (parts.length >= 6) {
-      [cia, flight, dateStr, route, depTime, arrTime] = parts;
+      [cia, flight, dateStr, route] = parts.slice(0, 4);
+      // Verificar se há classe após a rota
+      const potentialClass = parts[4];
+      if (isBookingClass(potentialClass)) {
+        // Formato com classe: "GRUFCO HS2 2040 #1200"
+        depTime = parts[5];
+        arrTime = parts[6] || parts[5]; // Pode não ter horário de chegada
+        arrDate = parts[7];
+      } else if (isTime(potentialClass)) {
+        // Formato sem classe: "GRUCDG 2040 #1150"
+        depTime = parts[4];
+        arrTime = parts[5];
+        arrDate = parts[6];
+      } else {
+        // Fallback: assumir que é horário mesmo
+        depTime = parts[4];
+        arrTime = parts[5];
+        arrDate = parts[6];
+      }
     } 
-    // Formato: "LA 8084   22NOV GRULHR HS1  2340  #1405"
+    // Formato: "LA 8084 22NOV GRULHR HS1 2340 #1405"
     else if (parts.length >= 5) {
-      [cia, flight, dateStr, route, depTime, arrTime] = parts;
+      [cia, flight, dateStr, route] = parts.slice(0, 4);
+      const potentialClass = parts[4];
+      if (isBookingClass(potentialClass) && parts.length >= 6) {
+        // Tem classe e horários
+        depTime = parts[5];
+        arrTime = parts[6] || parts[5];
+      } else if (isTime(potentialClass)) {
+        // Sem classe, direto para horário
+        depTime = parts[4];
+        arrTime = parts[5] || parts[4];
+      } else {
+        // Fallback
+        depTime = parts[4];
+        arrTime = parts[5] || parts[4];
+      }
     } else {
       console.warn('⚠️ Trecho inválido - formato não reconhecido:', trecho);
       return null;
