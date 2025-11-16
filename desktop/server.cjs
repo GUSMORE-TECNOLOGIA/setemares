@@ -14,12 +14,12 @@ const morgan = require("morgan");
 const cors = require("cors");
 const { chromium } = require("playwright");
 const { createClient } = require("@supabase/supabase-js");
-const { validateConciergeForm, validatePdfGeneration, validateDateRange } = require('./server-validation');
+const { validateConciergeForm, validatePdfGeneration, validateDateRange } = require('./server-validation.cjs');
 
 // Importar módulos utilitários modulares
-const { setCache, getCache } = require('./server/utils/cache');
-const { safeFetchJson } = require('./server/utils/http-helpers');
-const { geocodeDestination, geocodeAddress } = require('./server/utils/geocoding');
+const { setCache, getCache } = require('./server/utils/cache.cjs');
+const { safeFetchJson } = require('./server/utils/http-helpers.cjs');
+const { geocodeDestination, geocodeAddress } = require('./server/utils/geocoding.cjs');
 const { 
   isoDateRange, 
   getCityTimezone, 
@@ -28,12 +28,12 @@ const {
   parseTimeToMin, 
   formatMinToTime, 
   timeInBlock 
-} = require('./server/utils/date-helpers');
-const { fetchWeatherRange } = require('./server/utils/weather');
+} = require('./server/utils/date-helpers.cjs');
+const { fetchWeatherRange } = require('./server/utils/weather.cjs');
 
 // Importar rotas modulares
-const { registerPdfRoutes } = require('./server/routes/pdf');
-const { registerConciergeRoutes } = require('./server/routes/concierge');
+const { registerPdfRoutes } = require('./server/routes/pdf.cjs');
+const { registerConciergeRoutes } = require('./server/routes/concierge.cjs');
 
 // Carregar datasets locais
 const bhPlaces = require('./assets/bh-places.json');
@@ -1209,3 +1209,4 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server up on :${PORT}`);
 });
+

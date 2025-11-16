@@ -214,7 +214,12 @@ function parseSegments(text: string): ParsedSegment[] {
     
     if (newFormatMatch) {
       const [, carrier, flight, depDate, depAirport, arrAirport, asterisk, status, depTime, arrTime, , arrDate] = newFormatMatch;
-      
+
+      console.log(`[email-parser] Linha original: "${trimmed}"`);
+      console.log(`[email-parser] newFormatMatch completo:`, newFormatMatch);
+      console.log(`[email-parser] depTime extraído: "${depTime}", arrTime extraído: "${arrTime}"`);
+      console.log(`[email-parser] Índices do array: status[${newFormatMatch[7]}], depTime[${newFormatMatch[8]}], arrTime[${newFormatMatch[9]}]`);
+
       // Converter data e horários para ISO
       const depTimeISO = convertToISO(depDate, depTime);
       // Se tem data de chegada explícita, usar ela; senão, usar data de partida
@@ -537,33 +542,48 @@ function convertToISO(dateStr: string, timeStr: string, isOvernight = false): st
     }
     
     // Converter horário HHMM para horas e minutos
-    const cleanTime = timeStr.replace('#', '');
+    // Normalizar para garantir 4 dígitos (preencher com zero à esquerda se necessário)
+    let cleanTime = timeStr.replace('#', '').trim();
+    cleanTime = cleanTime.padStart(4, '0');
+    
     if (cleanTime.length !== 4) {
       throw new Error(`Formato de horário inválido: ${timeStr}`);
     }
+
+    // Extrair hora e minuto usando substring (sempre 2 primeiros dígitos = hora, 2 últimos = minuto)
+    const hours = cleanTime.substring(0, 2);
+    const minutes = cleanTime.substring(2, 4);
+    const hoursInt = parseInt(hours, 10);
+    const minutesInt = parseInt(minutes, 10);
     
-    const hours = parseInt(cleanTime.substring(0, 2));
-    const minutes = parseInt(cleanTime.substring(2, 4));
-    
+    console.log(`[convertToISO] dateStr: "${dateStr}", timeStr: "${timeStr}", cleanTime: "${cleanTime}"`);
+    console.log(`[convertToISO] hours: "${hours}", minutes: "${minutes}", hoursInt: ${hoursInt}, minutesInt: ${minutesInt}`);
+
     // Validar horário
-    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    if (isNaN(hoursInt) || isNaN(minutesInt) || hoursInt < 0 || hoursInt > 23 || minutesInt < 0 || minutesInt > 59) {
       throw new Error(`Horário inválido: ${timeStr}`);
     }
+
+    // Calcular dia final (se overnight, adicionar 1 dia)
+    let finalDay = day;
+    let finalMonth = month;
+    let finalYear = year;
     
-    // Criar data
-    const date = new Date(year, month, day, hours, minutes);
-    
-    // Verificar se a data é válida
-    if (isNaN(date.getTime())) {
-      throw new Error(`Data inválida: ${dateStr}`);
-    }
-    
-    // Se é overnight, adicionar 1 dia
     if (isOvernight) {
-      date.setDate(date.getDate() + 1);
+      const tempDate = new Date(year, month, day);
+      tempDate.setDate(tempDate.getDate() + 1);
+      finalDay = tempDate.getDate();
+      finalMonth = tempDate.getMonth();
+      finalYear = tempDate.getFullYear();
     }
+
+    // Criar string ISO manualmente preservando o horário local (NÃO usar toISOString que converte para UTC)
+    // Formato: YYYY-MM-DDTHH:MM:SS
+    const isoString = `${finalYear}-${String(finalMonth + 1).padStart(2, '0')}-${String(finalDay).padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
     
-    return date.toISOString();
+    console.log(`[convertToISO] isoString gerada: "${isoString}"`);
+    
+    return isoString;
   } catch (error) {
     console.warn('❌ Erro ao converter data/hora:', dateStr, timeStr, error);
     return new Date().toISOString(); // Fallback para data atual

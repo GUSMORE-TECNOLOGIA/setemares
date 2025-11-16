@@ -66,31 +66,35 @@ function toBookingFlights(itinerary?: DecodedItinerary, optionLabel?: string): B
 /**
  * Converte data brasileira (DD/MM/YYYY) e horário (HH:MM) para ISO (YYYY-MM-DDTHH:MM:SS)
  */
-function convertToISOString(brDate: string, brTime: string): string {
-  try {
-    const [day, month, year] = brDate.split('/');
-    if (!day || !month || !year) {
-      logger.warn('Data inválida para conversão ISO', { brDate }, 'convertToISOString');
-      return new Date().toISOString();
+  function convertToISOString(brDate: string, brTime: string): string {
+    try {
+      const [day, month, year] = brDate.split('/');
+      if (!day || !month || !year) {
+        logger.warn('Data inválida para conversão ISO', { brDate }, 'convertToISOString');
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+      }
+      const [hours = '00', minutes = '00'] = brTime.split(':');
+      
+      // Criar string ISO manualmente preservando o horário local (NÃO usar toISOString que converte para UTC)
+      // Formato: YYYY-MM-DDTHH:MM:SS
+      const isoString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}:00`;
+      
+      // Validar que a data é válida criando um Date temporário apenas para validação
+      const tempDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes));
+      if (isNaN(tempDate.getTime())) {
+        logger.warn('Data inválida após conversão', { brDate, brTime }, 'convertToISOString');
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+      }
+      
+      return isoString;
+    } catch (error) {
+      logger.error('Erro ao converter para ISO', error as Error, { brDate, brTime }, 'convertToISOString');
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
     }
-    const [hours, minutes] = brTime.split(':');
-    const date = new Date(
-      parseInt(year),
-      parseInt(month) - 1,
-      parseInt(day),
-      parseInt(hours || '0'),
-      parseInt(minutes || '0')
-    );
-    if (isNaN(date.getTime())) {
-      logger.warn('Data inválida após conversão', { brDate, brTime }, 'convertToISOString');
-      return new Date().toISOString();
-    }
-    return date.toISOString();
-  } catch (error) {
-    logger.error('Erro ao converter para ISO', error as Error, { brDate, brTime }, 'convertToISOString');
-    return new Date().toISOString();
   }
-}
 
 function parseDateForLabel(value?: string | null): Date | null {
   if (!value) {

@@ -80,17 +80,21 @@ export function buildMultiStackedData(options: ExtendedParsedOption[]): MultiSta
     },
     options: options.map((option, index) => ({
       index: index + 1,
-      flights: (option.segments ?? []).map((segment: ParsedSegment) => {
-        const departure = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);
-        const arrival = formatDateTimeParts(segment.arrTimeISO ?? segment.depTimeISO);
-        const flightCode = `${(segment.carrier ?? '').trim()} ${(segment.flight ?? '').trim()}`.trim();
+      flights: (option.segments ?? []).map((segment: ParsedSegment) => {        
+        console.log(`[pdf-builders] segment.depTimeISO: "${segment.depTimeISO}", tipo: ${typeof segment.depTimeISO}`);
+        console.log(`[pdf-builders] segment.arrTimeISO: "${segment.arrTimeISO}", tipo: ${typeof segment.arrTimeISO}`);
+        const departure = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);                                                                        
+        const arrival = formatDateTimeParts(segment.arrTimeISO ?? segment.depTimeISO);                                                                          
+        const flightCode = `${(segment.carrier ?? '').trim()} ${(segment.flight ?? '').trim()}`.trim();                                                         
 
         return {
           flightCode,
           fromAirport: segment.depAirport,
           toAirport: segment.arrAirport,
-          departureDateTime: [departure.date, departure.time].filter(Boolean).join(' '),
-          arrivalDateTime: [arrival.date, arrival.time].filter(Boolean).join(' ')
+          departureDateTime: [departure.date, departure.time].filter(Boolean).join(' '),                                                                        
+          arrivalDateTime: [arrival.date, arrival.time].filter(Boolean).join(' '),
+          departureWeekday: departure.weekday,
+          arrivalWeekday: arrival.weekday                                                                               
         };
       }),
       fareDetails: ((option.fareCategories || option.fares || []) as ParsedFare[])
@@ -207,16 +211,18 @@ export function buildSingleOptionMultiStackedData(
       {
         index: 1,
         flights: segments.map((segment: ParsedSegment) => {
-          const departure = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);
-          const arrival = formatDateTimeParts(segment.arrTimeISO ?? segment.depTimeISO);
-          const flightCode = `${(segment.carrier ?? '').trim()} ${(segment.flight ?? '').trim()}`.trim();
+          const departure = formatDateTimeParts(segment.depTimeISO ?? segment.arrTimeISO);                                                                      
+          const arrival = formatDateTimeParts(segment.arrTimeISO ?? segment.depTimeISO);                                                                        
+          const flightCode = `${(segment.carrier ?? '').trim()} ${(segment.flight ?? '').trim()}`.trim();                                                       
 
           return {
             flightCode,
             fromAirport: segment.depAirport,
             toAirport: segment.arrAirport,
-            departureDateTime: [departure.date, departure.time].filter(Boolean).join(' '),
-            arrivalDateTime: [arrival.date, arrival.time].filter(Boolean).join(' ')
+            departureDateTime: [departure.date, departure.time].filter(Boolean).join(' '),                                                                      
+            arrivalDateTime: [arrival.date, arrival.time].filter(Boolean).join(' '),
+            departureWeekday: departure.weekday,
+            arrivalWeekday: arrival.weekday                                                                             
           };
         }),
         fareDetails: faresForPdf.map((fare: ParsedFare) => ({

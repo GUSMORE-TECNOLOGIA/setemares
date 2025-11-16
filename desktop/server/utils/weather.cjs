@@ -2,9 +2,9 @@
  * Utilitários de clima
  */
 
-const { safeFetchJson } = require('./http-helpers');
-const { setCache, getCache } = require('./cache');
-const { isoDateRange } = require('./date-helpers');
+const { safeFetchJson } = require('./http-helpers.cjs');
+const { setCache, getCache } = require('./cache.cjs');
+const { isoDateRange } = require('./date-helpers.cjs');
 
 // Carregar médias históricas
 const weatherAverages = require('../../assets/weather-averages.json');
@@ -166,4 +166,6 @@ module.exports = {
   fetchWeatherWithWeatherAPI,
   weatherCodeToText
 };
+
+
 

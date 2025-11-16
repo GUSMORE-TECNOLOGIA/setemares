@@ -313,28 +313,105 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   const feeMatch = pnrText.match(/(?:\+|\s)?fee\s+usd\s+([\d.,]+)/i);
   const feeUSD = feeMatch ? parseFloat(feeMatch[1].replace(',', '.')) : undefined;
   
-  // Decodificar segmentos
-  const segments = trechos.map(trecho => {
-    const parts = trecho.trim().split(/\s+/);
-    const [cia, flight, dateStr, route] = parts;
-    
+  // Decodificar segmentos com horários corretos
+  const segments = await Promise.all(trechos.map(async trecho => {
+    // Usar a mesma lógica de decodeItinerary para garantir consistência
+    const cleanedTrecho = trecho.replace(/^\d+\s+/, '');
+    const parts = cleanedTrecho.trim().split(/\s+/);
+
+    const isBookingClass = (str: string): boolean => /^[A-Z]{2,3}\d{1,2}$/.test(str);
+    const isTime = (str: string): boolean => /^#?\d{3,4}$/.test(str) || /^\d{2}:\d{2}$/.test(str);
+
+    let cia, flight, dateStr, route, depTime, arrTime, arrDate;
+    let classIndex = -1;
+
+    // Formato: "AZ 679 25NOV GRUFCO HS2 2040 #1200"
+    if (parts.length >= 6) {
+      [cia, flight, dateStr, route] = parts.slice(0, 4);
+      const potentialClass = parts[4];
+      if (isBookingClass(potentialClass)) {
+        depTime = parts[5]?.trim();
+        arrTime = parts[6]?.trim() || parts[5]?.trim();
+        arrDate = parts[7]?.trim();
+      } else if (isTime(potentialClass)) {
+        depTime = parts[4]?.trim();
+        arrTime = parts[5]?.trim();
+        arrDate = parts[6]?.trim();
+      } else {
+        depTime = parts[4]?.trim();
+        arrTime = parts[5]?.trim();
+        arrDate = parts[6]?.trim();
+      }
+    } else if (parts.length >= 5) {
+      [cia, flight, dateStr, route] = parts.slice(0, 4);
+      const potentialClass = parts[4];
+      if (isBookingClass(potentialClass) && parts.length >= 6) {
+        depTime = parts[5]?.trim();
+        arrTime = parts[6]?.trim() || parts[5]?.trim();
+      } else if (isTime(potentialClass)) {
+        depTime = parts[4]?.trim();
+        arrTime = parts[5]?.trim() || parts[4]?.trim();
+      } else {
+        depTime = parts[4]?.trim();
+        arrTime = parts[5]?.trim() || parts[4]?.trim();
+      }
+    } else {
+      return null;
+    }
+
     if (!cia || !flight || !dateStr || !route) return null;
-    
+
     const orig = route?.substring(0, 3) || 'GRU';
     const dest = route?.substring(3, 6) || 'ICN';
-    // const decodedDate = decodeDate(dateStr);
-    // const depTimeFormatted = formatTime(depTime);
-    // const arrTimeFormatted = formatTime(arrTime);
+
+    // Normalizar horários: garantir que tenham 4 dígitos (preencher com zero à esquerda se necessário)
+    depTime = depTime ? depTime.padStart(4, '0') : '0000';
+    arrTime = arrTime ? arrTime.replace('#', '').padStart(4, '0') : '0000';
+
+    // Decodificar data e horário
+    const decodedDate = decodeDate(dateStr);
+    console.log(`[PARSER] Trecho: ${trecho}`);
+    console.log(`[PARSER] depTime extraído: "${depTime}"`);
+    const depTimeFormatted = formatTime(depTime);
+    console.log(`[PARSER] depTime formatado: "${depTimeFormatted}"`);
+    const arrTimeFormatted = formatTime(arrTime);
+    console.log(`[PARSER] arrTime formatado: "${arrTimeFormatted}"`);
+
+    // Calcular data de chegada
+    let finalArrDate = decodedDate;
+    const isOvernight = trecho.includes('#');
     
+    if (arrDate && /^\d{1,2}[A-Z]{3}$/.test(arrDate)) {
+      finalArrDate = decodeDate(arrDate);
+    } else if (isOvernight) {
+      const [day, month, year] = decodedDate.split('/');
+      const nextDay = new Date(parseInt(year), parseInt(month) - 1, parseInt(day) + 1);
+      finalArrDate = `${nextDay.getDate().toString().padStart(2, '0')}/${(nextDay.getMonth() + 1).toString().padStart(2, '0')}/${nextDay.getFullYear()}`;
+    }
+
+    // Converter para formato ISO (YYYY-MM-DDTHH:MM:SS) preservando horário local
+    const [depDay, depMonth, depYear] = decodedDate.split('/');
+    const [arrDay, arrMonth, arrYear] = finalArrDate.split('/');
+    const [depHour, depMin] = depTimeFormatted.split(':');
+    const [arrHour, arrMin] = arrTimeFormatted.split(':');
+
+    // Criar string ISO manualmente preservando o horário local (não usar toISOString que converte para UTC)                                                  
+    const depTimeISO = `${depYear}-${depMonth.padStart(2, '0')}-${depDay.padStart(2, '0')}T${depHour.padStart(2, '0')}:${depMin.padStart(2, '0')}:00`;          
+    const arrTimeISO = `${arrYear}-${arrMonth.padStart(2, '0')}-${arrDay.padStart(2, '0')}T${arrHour.padStart(2, '0')}:${arrMin.padStart(2, '0')}:00`;
+    console.log(`[PARSER] depHour: "${depHour}", depMin: "${depMin}", depTimeISO: "${depTimeISO}"`);
+    console.log(`[PARSER] arrHour: "${arrHour}", arrMin: "${arrMin}", arrTimeISO: "${arrTimeISO}"`);
+
     return {
       carrier: cia,
       flight: flight,
       depAirport: orig,
       arrAirport: dest,
-      depTimeISO: new Date().toISOString(), // Placeholder
-      arrTimeISO: new Date().toISOString(), // Placeholder
+      depTimeISO,
+      arrTimeISO,
     };
-  }).filter(segment => segment !== null);
+  }));
+
+  const validSegments = segments.filter(segment => segment !== null);
   
   return {
     tarifa: fares[0]?.tarifa || '0',
@@ -347,7 +424,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     currency: detectedCurrency,
     is_multi: isMulti,
     // Novos campos
-    segments,
+    segments: validSegments,
     paymentTerms,
     baggage,
     bagagem_hint: baggage, // Alias para compatibilidade
@@ -375,7 +452,9 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     
     const parts = cleanedTrecho.trim().split(/\s+/);
     console.log('🔍 Trecho original:', trecho);
+    console.log('🔍 cleanedTrecho:', cleanedTrecho);
     console.log('🔍 Parts divididas:', parts);
+    console.log('🔍 Parts com índices:', parts.map((p, i) => `[${i}]: "${p}"`).join(', '));
     
     // Função para detectar se uma string é uma classe de voo (ex: HS2, HK1, SS1)
     const isBookingClass = (str: string): boolean => {
@@ -411,11 +490,13 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       [cia, flight, dateStr, route] = parts.slice(0, 4);
       // Verificar se há classe após a rota
       const potentialClass = parts[4];
+      console.log(`[PARSER] parts.length: ${parts.length}, potentialClass[4]: "${potentialClass}"`);
       if (isBookingClass(potentialClass)) {
         // Formato com classe: "GRUFCO HS2 2040 #1200"
         depTime = parts[5];
         arrTime = parts[6] || parts[5]; // Pode não ter horário de chegada
         arrDate = parts[7];
+        console.log(`[PARSER] Formato com classe: depTime[5]="${parts[5]}", arrTime[6]="${parts[6]}"`);
       } else if (isTime(potentialClass)) {
         // Formato sem classe: "GRUCDG 2040 #1150"
         depTime = parts[4];
@@ -455,13 +536,15 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       console.warn('⚠️ Trecho inválido - dados insuficientes:', trecho);
       return null;
     }
-    
+
+    console.log(`[PARSER] ⚠️ ANTES DE FORMATAR: depTime="${depTime}", arrTime="${arrTime}"`);
+
     const orig = route?.substring(0, 3) || 'GRU';
     const dest = route?.substring(3, 6) || 'ICN';
-    
+
     // Decodificar data (ex: "22NOV" -> "22/11/2025")
     const decodedDate = decodeDate(dateStr);
-    
+
     // Decodificar horários
     const depTimeFormatted = formatTime(depTime);
     
@@ -566,33 +649,50 @@ function formatTime(timeStr: string | undefined): string {
     console.warn('⚠️ formatTime recebeu valor inválido:', timeStr);
     return '00:00';
   }
-  
+
   // Remover # se presente e formatar horário
-  const cleanTime = timeStr.replace('#', '');
-  
+  let cleanTime = timeStr.replace('#', '').trim();
+  console.log(`[formatTime] timeStr: "${timeStr}", cleanTime: "${cleanTime}", length: ${cleanTime.length}`);
+
   // Se já está no formato HH:MM, retornar diretamente
   if (cleanTime.match(/^\d{2}:\d{2}$/)) {
     return cleanTime;
   }
-  
-  // Exemplo: "2340" -> "23:40", "1405" -> "14:05"
-  if (cleanTime.length === 4) {
-    const hours = cleanTime.substring(0, 2);
-    const minutes = cleanTime.substring(2, 4);
-    
+
+  // Remover qualquer caractere não numérico
+  cleanTime = cleanTime.replace(/\D/g, '');
+  console.log(`[formatTime] cleanTime após remover não-numéricos: "${cleanTime}"`);
+
+  // Normalizar: garantir 4 dígitos (preencher com zero à esquerda)
+  // IMPORTANTE: "2040" deve permanecer "2040", não "02040"
+  // Se já tem 4 dígitos, usar como está. Se tem menos, preencher à esquerda.
+  const normalizedTime = cleanTime.length === 4 ? cleanTime : cleanTime.padStart(4, '0');
+  console.log(`[formatTime] cleanTime: "${cleanTime}", normalizedTime: "${normalizedTime}", length: ${normalizedTime.length}`);
+
+  // Exemplo: "2340" -> "23:40", "1405" -> "14:05", "2040" -> "20:40"
+  if (normalizedTime.length >= 4) {
+    // SEMPRE pegar os 2 primeiros dígitos para hora e os 2 últimos para minutos
+    // Para "2040": [0:2] = "20", [2:4] = "40"
+    const hours = normalizedTime.substring(0, 2);
+    const minutes = normalizedTime.substring(2, 4);
+    console.log(`[formatTime] hours substring(0,2): "${hours}", minutes substring(2,4): "${minutes}"`);
+
     // Validar horário (00-23 para horas, 00-59 para minutos)
-    const h = parseInt(hours);
-    const m = parseInt(minutes);
-    
+    const h = parseInt(hours, 10);
+    const m = parseInt(minutes, 10);
+    console.log(`[formatTime] h parsed: ${h}, m parsed: ${m}`);
+
     if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
-      return `${hours}:${minutes}`;
+      const result = `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+      console.log(`[formatTime] resultado final: "${result}"`);
+      return result;
     } else {
-      console.warn('❌ Horário inválido:', timeStr);
+      console.warn('❌ Horário inválido:', timeStr, 'h:', h, 'm:', m);
       return '00:00';
     }
   }
-  
-  console.warn('❌ Formato de horário inválido:', timeStr);
+
+  console.warn('❌ Formato de horário inválido:', timeStr, 'length:', cleanTime.length);
   return '00:00';
 }
 

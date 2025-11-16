@@ -35,13 +35,17 @@ def _fmt_time(day: str, mon: str, hm: str) -> str:
 
 
 def _make_dt(day: str, mon: str, hm: str) -> datetime:
-    """Cria um datetime no ano corrente com base em dia, mês (MMM) e hora/minuto (HHMM)."""
+    """Cria um datetime no ano corrente com base em dia, mês (MMM) e hora/minuto (HHMM)."""                                                                    
     now = datetime.now()
-    hour = hm[-4:-2]
-    minute = hm[-2:]
+    # Garantir que hm tem 4 dígitos (preencher com zeros à esquerda se necessário)                                                                           
+    hm_padded = hm.strip().rjust(4, "0")
+    # Para "2040": [0:2] = "20" (hora), [2:4] = "40" (minuto)
+    # Para "040": após rjust(4) = "0040": [0:2] = "00", [2:4] = "40"
+    hour = int(hm_padded[0:2]) if len(hm_padded) >= 2 else 0
+    minute = int(hm_padded[2:4]) if len(hm_padded) >= 4 else 0
     month = _MONTHS.get(mon.upper(), now.month)
     try:
-        return datetime(now.year, month, int(day), int(hour), int(minute))
+        return datetime(now.year, month, int(day), hour, minute)
     except Exception:
         # fallback conservador
         return datetime(now.year, month, 1, 0, 0)
@@ -68,7 +72,13 @@ def decode_lines(lines: List[str]) -> Optional[Dict[str, Any]]:
         from core.data.airports import get_airport_description
         dep_dt = _make_dt(d["dep_day"], d["dep_mon"], dep_time)
         arr_dt = _make_dt(d["dep_day"], d["dep_mon"], arr_time)
+        
+        # Se tem #, chegada é no dia seguinte
         if is_overnight:
+            arr_dt = arr_dt + timedelta(days=1)
+        # Se não tem #, mas horário de chegada é menor que o de partida e diferença > 12h, 
+        # provavelmente chegou no dia seguinte (ex: partida 22:20, chegada 06:25)
+        elif arr_dt < dep_dt or (arr_dt - dep_dt).total_seconds() < -12 * 3600:
             arr_dt = arr_dt + timedelta(days=1)
         flights.append({
             "company": {"iataCode": d["carrier"], "description": d["carrier"]},

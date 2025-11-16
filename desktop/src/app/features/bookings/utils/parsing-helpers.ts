@@ -72,24 +72,42 @@ export function parseBaggageString(baggage?: string): ParsedBaggage[] | undefine
 /**
  * Formata partes de data e hora de uma string ISO
  */
-export function formatDateTimeParts(value?: string | null): { date: string; time: string } {
+export function formatDateTimeParts(value?: string | null): { date: string; time: string; weekday: string } {                                                                    
   if (!value) {
-    return { date: '', time: '' };
+    return { date: '', time: '', weekday: '' };
   }
 
-  let raw = String(value).replace(/#/g, '').replace(/T/, ' ').replace(/Z/, '').trim();
+  // Se recebeu um objeto Date, extrair a string ISO diretamente preservando horário local
+  if (value instanceof Date) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    const hour = String(value.getHours()).padStart(2, '0');
+    const minutes = String(value.getMinutes()).padStart(2, '0');
+    const isoString = `${year}-${month}-${day}T${hour}:${minutes}:00`;
+    console.log(`[formatDateTimeParts] Recebeu Date object, convertido para: "${isoString}"`);
+    value = isoString;
+  }
+
+  let raw = String(value).replace(/#/g, '').replace(/T/, ' ').replace(/Z/, '').trim();                                                                          
   raw = raw.replace(/\s+/g, ' ');
 
-  const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2})(?::(\d{2}))?)/);
+  const isoMatch = raw.match(/(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2})(?::(\d{2}))?(?::(\d{2}))?)?/);                                                                            
   if (isoMatch) {
     const [, year, month, day, hour = '00', minutes = '00'] = isoMatch;
+    console.log(`[formatDateTimeParts] raw: "${raw}", match:`, isoMatch);
+    console.log(`[formatDateTimeParts] hour extraído: "${hour}", minutes extraídos: "${minutes}"`);
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const weekdayShort = dateObj.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').substring(0, 3);
+    
     return {
       date: `${day}/${month}/${year}`,
-      time: `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')}`
+      time: `${hour.padStart(2, '0')}:${minutes.padStart(2, '0')}`,
+      weekday: weekdayShort
     };
   }
 
-  return { date: raw, time: '' };
+  return { date: raw, time: '', weekday: '' };
 }
 
 /**

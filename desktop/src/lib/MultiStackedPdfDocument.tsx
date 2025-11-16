@@ -21,6 +21,8 @@ export type MultiStackedPdfData = {
       toAirport: string;       // "HUMBERTO DELGADO AIRPORT (LIS), LISBON, PORTUGAL"
       departureDateTime: string; // "22/11/2025 23:15"
       arrivalDateTime: string;   // "23/11/2025 12:30"
+      departureWeekday?: string; // "ter" (opcional)
+      arrivalWeekday?: string;   // "qua" (opcional)
     }>;
     fareDetails?: Array<{
       classLabel: string;      // "Executiva", "Premium", "Economy"
@@ -464,15 +466,15 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
             <View style={S.tableCard}>
               {/* Cabeçalho da tabela */}
               <View style={S.tableHeader}>
-                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
-                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
-                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
+                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
+                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
+                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
                 <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
                 <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
               </View>
-              
-                  {/* Linhas de voos - apenas do grupo atual */}
-                  {flightGroup.map((flight, i) => (
+
+              {/* Linhas de voos - apenas do grupo atual */}
+              {flightGroup.map((flight, i) => (
                 <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
                   <View style={S.col1}>
                     <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
@@ -499,21 +501,31 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                     </Text>
                   </View>
                   <View style={S.col4}>
-                    <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                      {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                      {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col5}>
-                    <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                      {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                      {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
-                    </Text>
-                  </View>
+                      {flight.departureWeekday && (
+                        <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                          {flight.departureWeekday}
+                        </Text>
+                      )}
+                      <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                        {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
+                      </Text>
+                      <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                        {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
+                      </Text>
+                    </View>
+                    <View style={S.col5}>
+                      {flight.arrivalWeekday && (
+                        <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                          {flight.arrivalWeekday}
+                        </Text>
+                      )}
+                      <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                        {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
+                      </Text>
+                      <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                        {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
+                      </Text>
+                    </View>
                 </View>
               ))}
             </View>
@@ -636,43 +648,48 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
 
                 {/* Tabela de voos */}
                 <View style={S.tableCard}>
-                  {/* Cabeçalho da tabela */}
-                  <View style={S.tableHeader}>
-                    <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
-                    <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
-                    <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
-                    <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
-                    <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+              {/* Cabeçalho da tabela */}
+              <View style={S.tableHeader}>
+                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
+                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
+                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
+                <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
+                <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+              </View>
+
+              {/* Linhas de voos */}
+              {option.flights.map((flight, i) => (
+                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
+                  <View style={S.col1}>
+                    <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
+                      {flight.flightCode.split(' ')[0]}
+                    </Text>
+                    <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
+                      {flight.flightCode.split(' ').slice(1).join(' ')}
+                    </Text>
                   </View>
-                  
-                  {/* Linhas de voos */}
-                  {option.flights.map((flight, i) => (
-                    <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
-                      <View style={S.col1}>
-                        <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
-                          {flight.flightCode.split(' ')[0]}
-                        </Text>
-                        <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
-                          {flight.flightCode.split(' ').slice(1).join(' ')}
-                        </Text>
-                      </View>
-                      <View style={S.col2}>
-                        <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                          {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                          {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                        </Text>
-                      </View>
-                      <View style={S.col3}>
-                        <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                          {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                          {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                        </Text>
-                      </View>
-                      <View style={S.col4}>
+                  <View style={S.col2}>
+                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
+                    </Text>
+                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                    </Text>
+                  </View>
+                  <View style={S.col3}>
+                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
+                    </Text>
+                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                    </Text>
+                  </View>
+                  <View style={S.col4}>
+                        {flight.departureWeekday && (
+                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                            {flight.departureWeekday}
+                          </Text>
+                        )}
                         <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
                           {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
                         </Text>
@@ -681,6 +698,11 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                         </Text>
                       </View>
                       <View style={S.col5}>
+                        {flight.arrivalWeekday && (
+                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                            {flight.arrivalWeekday}
+                          </Text>
+                        )}
                         <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
                           {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
                         </Text>
@@ -807,58 +829,68 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
 
                   {/* Tabela de voos */}
                   <View style={S.tableCard}>
-                    {/* Cabeçalho da tabela */}
-                    <View style={S.tableHeader}>
-                      <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
-                      <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
-                      <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
-                      <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
-                      <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
-                    </View>
-                    
-                    {/* Linhas de voos */}
-                    {option.flights.map((flight, i) => (
-                      <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
-                        <View style={S.col1}>
-                          <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
-                            {flight.flightCode.split(' ')[0]}
+              {/* Cabeçalho da tabela */}
+              <View style={S.tableHeader}>
+                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
+                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
+                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
+                <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
+                <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+              </View>
+
+              {/* Linhas de voos */}
+              {option.flights.map((flight, i) => (
+                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
+                  <View style={S.col1}>
+                    <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
+                      {flight.flightCode.split(' ')[0]}
+                    </Text>
+                    <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
+                      {flight.flightCode.split(' ').slice(1).join(' ')}
+                    </Text>
+                  </View>
+                  <View style={S.col2}>
+                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
+                    </Text>
+                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                    </Text>
+                  </View>
+                  <View style={S.col3}>
+                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
+                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
+                    </Text>
+                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
+                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
+                    </Text>
+                  </View>
+                  <View style={S.col4}>
+                        {flight.departureWeekday && (
+                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                            {flight.departureWeekday}
                           </Text>
-                          <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
-                            {flight.flightCode.split(' ').slice(1).join(' ')}
+                        )}
+                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
+                        </Text>
+                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
+                        </Text>
+                      </View>
+                      <View style={S.col5}>
+                        {flight.arrivalWeekday && (
+                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
+                            {flight.arrivalWeekday}
                           </Text>
-                        </View>
-                        <View style={S.col2}>
-                          <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                            {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
-                          </Text>
-                          <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                            {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                          </Text>
-                        </View>
-                        <View style={S.col3}>
-                          <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                            {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
-                          </Text>
-                          <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                            {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                          </Text>
-                        </View>
-                        <View style={S.col4}>
-                          <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                            {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
-                          </Text>
-                          <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                            {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
-                          </Text>
-                        </View>
-                        <View style={S.col5}>
-                          <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                            {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
-                          </Text>
-                          <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                            {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
-                          </Text>
-                        </View>
+                        )}
+                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
+                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
+                        </Text>
+                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
+                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
+                        </Text>
+                      </View>
                       </View>
                     ))}
                   </View>
@@ -945,3 +977,7 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
     </Document>
   );
 }
+
+
+
+

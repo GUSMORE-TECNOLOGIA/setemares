@@ -2,8 +2,8 @@
  * Utilitários de geocodificação
  */
 
-const { safeFetchJson } = require('./http-helpers.js');
-const { setCache, getCache } = require('./cache.js');
+const { safeFetchJson } = require('./http-helpers.cjs');
+const { setCache, getCache } = require('./cache.cjs');
 
 /**
  * Geocodifica um destino (cidade/país)
@@ -62,4 +62,7 @@ module.exports = {
   geocodeDestination,
   geocodeAddress
 };
+
+
+
 
