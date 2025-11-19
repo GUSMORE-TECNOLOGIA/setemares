@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { PnrEditor } from "@/components/pnr/PnrEditor";
 import { SimpleSummary } from "@/components/decoder/SimpleSummary";
 import { UnifiedPreview } from "@/components/decoder/UnifiedPreview";
@@ -6,6 +6,7 @@ import { AdvancedPricingEngine } from "@/components/pricing/AdvancedPricingEngin
 import { ModalDetalhesDecodificacao } from "@/components/ModalDetalhesDecodificacao";
 import { QuoteMetadataFields } from "@/components/quote/QuoteMetadataFields";
 import { useHeaderActions } from "../../../shared/hooks/useHeaderActions";
+import { useKeyboardNavigation } from "../../../shared/hooks/useKeyboardNavigation";
 import { BookingsHeaderActions } from "../components/BookingsHeaderActions";
 import { useBookingsController } from "../hooks/useBookingsController";
 import { computeTotals } from "@/lib/pricing";
@@ -54,6 +55,16 @@ export function BookingsPage() {
   const hasComplexPricingOptions = isComplexPNR && parsedOptions.length > 0;
   const hasSimplePricingData = !isComplexPNR && (simplePnrData?.fares?.length ?? 0) > 0;
 
+  // Estado para navegação entre opções
+  const [activeOptionIndex, setActiveOptionIndex] = useState(0);
+
+  // Hook de navegação por teclado
+  useKeyboardNavigation({
+    onNext: () => setActiveOptionIndex(prev => Math.min(parsedOptions.length - 1, prev + 1)),
+    onPrev: () => setActiveOptionIndex(prev => Math.max(0, prev - 1)),
+    enabled: parsedOptions.length > 1
+  });
+
   // Para PNRs complexos, criar um simplePnrData temporário da primeira opção para o SimpleSummary
   const summaryData = useMemo(() => {
     if (!isComplexPNR || !parsedOptions[0]) {
@@ -63,7 +74,7 @@ export function BookingsPage() {
         observation: quoteObservation
       } : simplePnrData;
     }
-    
+
     const firstOption = parsedOptions[0];
     return {
       segments: firstOption.segments || [],
@@ -81,14 +92,14 @@ export function BookingsPage() {
   // Para PNRs complexos, criar um pricingResult baseado no summaryData
   const summaryPricingResult = useMemo(() => {
     if (!summaryData?.fares?.length) return pricingResult;
-    
+
     // Calcular totais baseados no summaryData usando computeTotals para consistência
     const totalBaseFare = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseFare || fare.tarifa || 0), 0);
     const totalBaseTaxes = summaryData.fares.reduce((sum: number, fare: any) => sum + (fare.baseTaxes || fare.taxas || 0), 0);
     const ravPercent = summaryData.ravPercent || 10;
     const incentivoPercent = summaryData.incentivoPercent || 0;
     const feeUSD = summaryData.feeUSD || 0;
-    
+
     // Usar computeTotals para garantir consistência com o resto do sistema
     return computeTotals({
       tarifa: totalBaseFare,
@@ -133,19 +144,29 @@ export function BookingsPage() {
         <div className="space-y-4">
           {hasComplexPricingOptions ? (
             parsedOptions.map((option, optionIndex) => (
-              <AdvancedPricingEngine
-                key={option.label}
-                optionLabel={`Pricing Engine: ${option.label}`}
-                optionIndex={optionIndex}
-                fareCategories={option.fareCategories?.map(fare => ({ ...fare, includeInPdf: fare.includeInPdf ?? true })) || []}
-                onPricingChange={setPricingResultFromEngine}
-                onSave={(updatedCategories) => updateOptionPricing(optionIndex, updatedCategories)}
-                resetTrigger={resetTrigger}
-                ravPercent={option.ravPercent || 10}
-                fee={option.feeUSD || 0}
-                incentivoPercent={option.incentivoPercent || 0}
-                numParcelas={option.numParcelas}
-              />
+              <div key={option.label} style={{ display: optionIndex !== activeOptionIndex ? 'none' : 'block' }}>
+                <AdvancedPricingEngine
+                  optionLabel={`Pricing Engine: ${option.label}`}
+                  optionIndex={optionIndex}
+                  fareCategories={option.fareCategories?.map(fare => ({ ...fare, includeInPdf: fare.includeInPdf ?? true })) || []}
+                  onPricingChange={setPricingResultFromEngine}
+                  onSave={(updatedCategories) => updateOptionPricing(optionIndex, updatedCategories)}
+                  resetTrigger={resetTrigger}
+                  ravPercent={option.ravPercent || 10}
+                  fee={option.feeUSD || 0}
+                  incentivoPercent={option.incentivoPercent || 0}
+                  numParcelas={option.numParcelas}
+                  currentOptionIndex={activeOptionIndex}
+                  totalOptions={parsedOptions.length}
+                  onNavigateOption={(direction) => {
+                    setActiveOptionIndex(prev =>
+                      direction === 'next'
+                        ? Math.min(parsedOptions.length - 1, prev + 1)
+                        : Math.max(0, prev - 1)
+                    );
+                  }}
+                />
+              </div>
             ))
           ) : hasSimplePricingData ? (
             <AdvancedPricingEngine
@@ -180,6 +201,10 @@ export function BookingsPage() {
           updatedFares={simpleSummaryFares}
           decodedFlights={decodedFlights}
           numParcelas={pricingResult?.numParcelas || summaryData?.numParcelas}
+          comparisonData={parsedOptions.length > 1 && summaryPricingResult ? {
+            otherOptionsCount: parsedOptions.length - 1,
+            priceDifference: summaryPricingResult.total - (parsedOptions[0]?.fareCategories?.reduce((sum, fare) => sum + fare.baseFare + fare.baseTaxes, 0) || 0)
+          } : undefined}
         />
       </div>
 
@@ -189,7 +214,7 @@ export function BookingsPage() {
           onClose={closeDetailsModal}
           decodedFlights={decodedFlights}
           errors={errors}
-          onCorrection={() => {}}
+          onCorrection={() => { }}
         />
       )}
     </div>
