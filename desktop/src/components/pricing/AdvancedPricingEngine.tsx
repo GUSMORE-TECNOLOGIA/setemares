@@ -24,19 +24,26 @@ interface AdvancedPricingEngineProps {
   fee?: number;
   incentivoPercent?: number;
   numParcelas?: number;
+  // Props para navegação entre opções
+  currentOptionIndex?: number;
+  totalOptions?: number;
+  onNavigateOption?: (direction: 'prev' | 'next') => void;
 }
 
-export function AdvancedPricingEngine({ 
-  optionLabel, 
-  optionIndex, 
+export function AdvancedPricingEngine({
+  optionLabel,
+  optionIndex,
   fareCategories,
-  onPricingChange, 
+  onPricingChange,
   onSave,
   resetTrigger,
   ravPercent = 10,
   fee = 0,
   incentivoPercent = 0,
-  numParcelas
+  numParcelas,
+  currentOptionIndex,
+  totalOptions,
+  onNavigateOption
 }: AdvancedPricingEngineProps) {
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -67,7 +74,7 @@ export function AdvancedPricingEngine({
       incentivoPercent: prevConfig.incentivoPercent !== undefined ? prevConfig.incentivoPercent : (incentivoPercent || 0),
       changePenaltyAmount: prevConfig.changePenaltyAmount !== undefined ? prevConfig.changePenaltyAmount : 500
     }));
-    
+
     // Atualizar parâmetros locais quando mudar de categoria ou quando fareCategories mudar
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
@@ -86,7 +93,7 @@ export function AdvancedPricingEngine({
   useEffect(() => {
     if (fareCategories.length > 0 && currentCategoryIndex < fareCategories.length) {
       const currentCategory = fareCategories[currentCategoryIndex];
-      
+
       setLocalParams({
         tarifa: Number(currentCategory.baseFare) || 0,
         taxasBase: Number(currentCategory.baseTaxes) || 0,
@@ -155,10 +162,10 @@ export function AdvancedPricingEngine({
       baseFare: localParams.tarifa,
       baseTaxes: localParams.taxasBase
     };
-    
+
     onSave(updatedCategories);
     setHasChanges(false);
-    
+
     // Notificar mudança de pricing incluindo configuração global completa
     onPricingChange({
       ...currentResult,
@@ -177,13 +184,13 @@ export function AdvancedPricingEngine({
       const baseTaxes = Number(localParams.taxasBase || fareCategories[0].baseTaxes) || 0;
       const ravPercent = Number(localParams.ravPercent) || 0;
       const fee = Number(localParams.fee) || 0;
-      
+
       // Usar a mesma lógica da função computeTotals
       const rav = Math.round(baseFare * (ravPercent / 100) * 100) / 100;
       const comissao = Math.round((rav + fee) * 100) / 100;
       const taxasExibidas = Math.round((baseTaxes + comissao) * 100) / 100;
       const total = Math.round((baseFare + taxasExibidas) * 100) / 100;
-      
+
       return isNaN(total) ? 0 : total;
     }
     return 0;
@@ -191,6 +198,34 @@ export function AdvancedPricingEngine({
 
   return (
     <div className="glass-card p-4">
+      {/* Indicadores de Opções (Pills) */}
+      {totalOptions && totalOptions > 1 && (
+        <div className="flex items-center justify-center gap-2 mb-4">
+          {Array.from({ length: totalOptions }).map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                if (idx > (currentOptionIndex ?? 0)) {
+                  onNavigateOption?.('next');
+                } else if (idx < (currentOptionIndex ?? 0)) {
+                  onNavigateOption?.('prev');
+                }
+              }}
+              className={`
+                w-10 h-10 rounded-lg font-medium transition-all
+                ${idx === currentOptionIndex
+                  ? 'bg-brand text-white shadow-lg scale-110'
+                  : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                }
+              `}
+              title={`Ir para Opção ${idx + 1}`}
+            >
+              {idx + 1}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Header Compacto */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -208,7 +243,7 @@ export function AdvancedPricingEngine({
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Valor Total */}
           <div className="text-right">
@@ -217,7 +252,7 @@ export function AdvancedPricingEngine({
             </div>
             <div className="text-xs text-slate-400">Total por pessoa</div>
           </div>
-          
+
           {/* Botão Detalhar */}
           <Button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -251,7 +286,7 @@ export function AdvancedPricingEngine({
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              
+
               <div className="text-center">
                 <div className="text-lg font-bold text-orange-400">
                   {currentCategory?.fareClass}
@@ -264,7 +299,7 @@ export function AdvancedPricingEngine({
                   {currentCategoryIndex + 1} de {totalCategories}
                 </div>
               </div>
-              
+
               <Button
                 onClick={goToNext}
                 disabled={currentCategoryIndex === totalCategories - 1}
@@ -283,7 +318,7 @@ export function AdvancedPricingEngine({
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Restaurar
               </Button>
-              
+
               <Button
                 onClick={handleSave}
                 disabled={!hasChanges}
@@ -300,7 +335,7 @@ export function AdvancedPricingEngine({
             {/* Parâmetros da Categoria Atual */}
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-slate-300 mb-3">Parâmetros da Categoria</h4>
-              
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
@@ -313,7 +348,7 @@ export function AdvancedPricingEngine({
                     className="w-full"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Taxas Base (USD)
@@ -331,7 +366,7 @@ export function AdvancedPricingEngine({
             {/* Configuração Global */}
             <div className="space-y-4">
               <h4 className="text-sm font-semibold text-slate-300 mb-3">Configuração Global</h4>
-              
+
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
@@ -344,7 +379,7 @@ export function AdvancedPricingEngine({
                     className="w-full"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Fee (USD)
@@ -356,7 +391,7 @@ export function AdvancedPricingEngine({
                     className="w-full"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Nº Parcelas
@@ -378,7 +413,7 @@ export function AdvancedPricingEngine({
                     Em até {globalConfig.numParcelas}x no cartão de crédito
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Incentivo (%)
@@ -396,7 +431,7 @@ export function AdvancedPricingEngine({
                     Percentual de incentivo (2-4%)
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-1">
                     Multa de Alteração (USD)
@@ -421,7 +456,7 @@ export function AdvancedPricingEngine({
           {/* Cálculos */}
           <div className="bg-slate-800/50 rounded-lg p-4">
             <h4 className="text-sm font-semibold text-slate-300 mb-4">Cálculos</h4>
-            
+
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">RAV ({globalConfig.ravPercent}%)</div>
@@ -429,28 +464,28 @@ export function AdvancedPricingEngine({
                   {formatCurrency(currentResult.rav)}
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">Incentivo ({globalConfig.incentivoPercent}%)</div>
                 <div className="text-lg font-bold text-blue-400">
                   {formatCurrency(currentResult.incentivo || 0)}
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">Comissão</div>
                 <div className="text-lg font-bold text-green-400">
                   {formatCurrency(currentResult.comissao)}
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">Taxas Exibidas</div>
                 <div className="text-lg font-bold text-orange-400">
                   {formatCurrency(currentResult.taxasExibidas)}
                 </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-xs text-slate-400 mb-1">Total por Bilhete</div>
                 <div className="text-xl font-bold text-white">
