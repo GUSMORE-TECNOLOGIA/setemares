@@ -6,6 +6,10 @@ interface SimpleSummaryProps {
   updatedFares?: any[];
   decodedFlights?: any[];
   numParcelas?: number;
+  comparisonData?: {
+    otherOptionsCount: number;
+    priceDifference: number;
+  };
 }
 
 const DEFAULT_PAYMENT_TERMS = 'Em até 4x no cartão de crédito. Taxas à vista.';
@@ -60,16 +64,16 @@ function formatDateTime(value: string | undefined): string {
   });
 }
 
-export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFlights, numParcelas }: SimpleSummaryProps) {
+export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFlights, numParcelas, comparisonData }: SimpleSummaryProps) {
   const segments = Array.isArray(decodedFlights) && decodedFlights.length
     ? decodedFlights
     : Array.isArray(pnrData?.segments) ? pnrData.segments : [];
   const fares = updatedFares ?? (Array.isArray(pnrData?.fares) ? pnrData.fares : []);
-  
+
   // Construir payment terms dinamicamente com base em numParcelas
   const finalNumParcelas = numParcelas || pnrData?.numParcelas || 4;
   const paymentTerms = pnrData?.paymentTerms || `Em até ${finalNumParcelas}x no cartão de crédito. Taxas à vista.`;
-  
+
   const baggage = pnrData?.baggage ?? DEFAULT_BAGGAGE;
   // Priorizar observações dos Metadados da Cotação, depois notes do PNR
   const notes = pnrData?.observation || pnrData?.notes || '';
@@ -93,49 +97,49 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFli
                   // Usar dados do decodedFlights se disponível (formato correto)
                   const companyCode = segment.company?.iataCode || segment.carrier || '--';
                   const flightNumber = segment.flight || '--';
-                  
+
                   // Extrair IATA codes dos aeroportos
                   let depAirport = '--';
                   let arrAirport = '--';
                   let depTime;
                   let arrTime;
-                  
+
                   // Formato decodedFlights (departureAirport, landingAirport)
                   if (segment.departureAirport?.iataCode) {
                     depAirport = segment.departureAirport.iataCode;
                     depTime = `${segment.departureDate} ${segment.departureTime}`;
-                  } 
+                  }
                   // Formato alternativo (departure, arrival)
                   else if (segment.departure?.iataCode) {
                     depAirport = segment.departure.iataCode;
                     depTime = segment.departure.dateTimeISO || segment.depTimeISO;
-                  } 
+                  }
                   // Formato string "São Paulo (GRU)"
                   else if (segment.depAirport) {
                     const depMatch = segment.depAirport.match(/\(([A-Z]{3})\)/);
                     depAirport = depMatch ? depMatch[1] : segment.depAirport.slice(0, 3).toUpperCase();
                     depTime = segment.depTimeISO;
                   }
-                  
+
                   // Formato decodedFlights (landingAirport)
                   if (segment.landingAirport?.iataCode) {
                     arrAirport = segment.landingAirport.iataCode;
-                    arrTime = segment.landingDate && segment.landingTime 
-                      ? `${segment.landingDate} ${segment.landingTime}` 
+                    arrTime = segment.landingDate && segment.landingTime
+                      ? `${segment.landingDate} ${segment.landingTime}`
                       : segment.arrTimeISO || '--';
-                  } 
+                  }
                   // Formato alternativo (arrival)
                   else if (segment.arrival?.iataCode) {
                     arrAirport = segment.arrival.iataCode;
                     arrTime = segment.arrival.dateTimeISO || segment.arrTimeISO;
-                  } 
+                  }
                   // Formato string "Frankfurt (FRA)"
                   else if (segment.arrAirport) {
                     const arrMatch = segment.arrAirport.match(/\(([A-Z]{3})\)/);
                     arrAirport = arrMatch ? arrMatch[1] : segment.arrAirport.slice(0, 3).toUpperCase();
                     arrTime = segment.arrTimeISO;
                   }
-                  
+
                   return (
                     <div key={index} className="flex flex-wrap items-center justify-between gap-4 text-sm bg-slate-600/30 rounded p-3">
                       <div className="font-medium text-slate-200">
@@ -169,12 +173,12 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFli
                   fares.map((fare: any, index: number) => {
                     const baseFareValue = toNumber(fare.baseFare ?? fare.tarifa ?? 0);
                     const baseTaxesValue = toNumber(fare.baseTaxes ?? fare.taxas ?? 0);
-                    
+
                     // Calcular valores individuais para cada categoria
                     let taxesDisplay = baseTaxesValue;
                     let totalDisplay = baseFareValue + baseTaxesValue;
                     let extrasDisplay = 0;
-                    
+
                     if (pricingResult) {
                       const ravPercent = typeof pnrData?.ravPercent === 'number' ? pnrData.ravPercent : 10;
                       const incentivoPercent = typeof pnrData?.incentivoPercent === 'number' ? pnrData.incentivoPercent : 0;
@@ -213,6 +217,31 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFli
                 )}
               </div>
             </div>
+
+            {/* Badge de Comparação */}
+            {comparisonData && comparisonData.otherOptionsCount > 0 && (
+              <div className="mt-4 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-blue-300 font-medium">
+                      Comparando com {comparisonData.otherOptionsCount} outra(s) opção(ões)
+                    </div>
+                    <div className="text-xs text-blue-400/70 mt-1">
+                      Diferença em relação à Opção 1
+                    </div>
+                  </div>
+                  <div className={`text-xl font-bold ${comparisonData.priceDifference > 0
+                      ? 'text-red-400'
+                      : comparisonData.priceDifference < 0
+                        ? 'text-green-400'
+                        : 'text-slate-400'
+                    }`}>
+                    {comparisonData.priceDifference > 0 ? '+' : ''}
+                    USD {formatCurrency(Math.abs(comparisonData.priceDifference))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div>
