@@ -65,7 +65,7 @@ export function BookingsPage() {
     enabled: parsedOptions.length > 1
   });
 
-  // Para PNRs complexos, criar um simplePnrData temporário da primeira opção para o SimpleSummary
+  // Para PNRs complexos, criar um simplePnrData temporário da opção ATIVA para o SimpleSummary
   const summaryData = useMemo(() => {
     if (!isComplexPNR || !parsedOptions[0]) {
       // Para PNRs simples, incluir observações dos Metadados da Cotação
@@ -75,19 +75,22 @@ export function BookingsPage() {
       } : simplePnrData;
     }
 
-    const firstOption = parsedOptions[0];
+    // Usar opção atualmente ativa em vez de sempre a primeira
+    const activeOption = parsedOptions[activeOptionIndex] || parsedOptions[0];
     return {
-      segments: firstOption.segments || [],
-      fares: firstOption.fares || [],
-      paymentTerms: firstOption.paymentTerms,
-      notes: firstOption.notes || '',
-      numParcelas: firstOption.numParcelas,
-      ravPercent: firstOption.ravPercent,
-      incentivoPercent: firstOption.incentivoPercent,
+      segments: activeOption.segments || [],
+      fares: activeOption.fares || [],
+      paymentTerms: activeOption.paymentTerms,
+      notes: activeOption.notes || '',
+      numParcelas: activeOption.numParcelas,
+      ravPercent: activeOption.ravPercent,
+      incentivoPercent: activeOption.incentivoPercent,
+      baggage: activeOption.baggage,
+      feeUSD: activeOption.feeUSD,
       // Incluir observações dos Metadados da Cotação
       observation: quoteObservation
     } as any;
-  }, [isComplexPNR, parsedOptions, simplePnrData, pricingResult, quoteObservation]);
+  }, [isComplexPNR, parsedOptions, simplePnrData, pricingResult, quoteObservation, activeOptionIndex]);
 
   // Para PNRs complexos, criar um pricingResult baseado no summaryData
   const summaryPricingResult = useMemo(() => {
