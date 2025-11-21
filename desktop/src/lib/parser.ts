@@ -1,3 +1,5 @@
+import { getAirlines } from './catalog-cache';
+
 // Bridge para conectar com o parser Python
 export interface ParsedPNR {
   tarifa: string;
@@ -438,9 +440,53 @@ function sanitizePaymentTerms(paymentLine: string, numParcelas: number): string 
   return cleanLine || 'À vista';
 }
 
+// Lista de fallback caso o banco de dados falhe ou esteja vazio
+const FALLBACK_COMPANIES: Record<string, string> = {
+  'LA': 'LATAM Airlines',
+  'BA': 'British Airways',
+  'IB': 'Iberia',
+  'TP': 'TAP Air Portugal',
+  'AF': 'Air France',
+  'KL': 'KLM',
+  'LH': 'Lufthansa',
+  'UA': 'United Airlines',
+  'AA': 'American Airlines',
+  'DL': 'Delta Air Lines',
+  'AZ': 'ITA Airways',
+  'LX': 'Swiss International Air Lines',
+  'JL': 'Japan Airlines',
+  'EK': 'Emirates',
+  'SA': 'South African Airways'
+};
+
+function getCompanyName(code: string, airlineMap?: Map<string, string>): string {
+  // 1. Tentar buscar no mapa do banco de dados
+  if (airlineMap && airlineMap.has(code)) {
+    return airlineMap.get(code)!;
+  }
+
+  // 2. Tentar buscar na lista de fallback
+  if (FALLBACK_COMPANIES[code]) {
+    return FALLBACK_COMPANIES[code];
+  }
+
+  // 3. Retornar o próprio código se não encontrar
+  return code;
+}
+
 // Simulação do decoder de itinerário
 export async function decodeItinerary(trechos: string[]): Promise<DecodedItinerary | null> {
   if (!trechos.length) return null;
+
+  // Carregar catálogo de companhias aéreas para resolução de nomes
+  let airlineMap = new Map<string, string>();
+  try {
+    const airlines = await getAirlines().catch(() => []);
+    airlineMap = new Map(airlines.map(a => [a.iata2, a.name]));
+    console.log(`[PARSER] Catálogo de companhias carregado: ${airlineMap.size} itens`);
+  } catch (error) {
+    console.warn('[PARSER] Falha ao carregar catálogo de companhias, usando fallback:', error);
+  }
 
   await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -574,7 +620,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
     ]);
 
     return {
-      company: { iataCode: cia, description: getCompanyName(cia) },
+      company: { iataCode: cia, description: getCompanyName(cia, airlineMap) },
       flight,
       departureDate: decodedDate,
       departureTime: depTimeFormatted,
@@ -695,27 +741,6 @@ function formatTime(timeStr: string | undefined): string {
 
   console.warn('❌ Formato de horário inválido:', timeStr, 'length:', cleanTime.length);
   return '00:00';
-}
-
-function getCompanyName(code: string): string {
-  const companies: Record<string, string> = {
-    'LA': 'LATAM Airlines',
-    'BA': 'British Airways',
-    'IB': 'Iberia',
-    'TP': 'TAP Air Portugal',
-    'AF': 'Air France',
-    'KL': 'KLM',
-    'LH': 'Lufthansa',
-    'UA': 'United Airlines',
-    'AA': 'American Airlines',
-    'DL': 'Delta Air Lines',
-    'AZ': 'ITA Airways',
-    'LX': 'Swiss International Air Lines',
-    'JL': 'Japan Airlines',
-    'EK': 'Emirates',
-    'SA': 'South African Airways'
-  };
-  return companies[code] || code;
 }
 
 async function getAirportName(code: string): Promise<{ name: string; found: boolean; error?: string }> {
