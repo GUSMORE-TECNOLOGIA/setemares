@@ -1,3 +1,5 @@
+import { getAirlines } from './catalog-cache';
+
 // Bridge para conectar com o parser Python
 export interface ParsedPNR {
   tarifa: string;
@@ -57,54 +59,32 @@ export interface DecodedItinerary {
  */
 function filterReservationBlocks(pnrText: string): string {
   console.log('🔍 Iniciando filtro de blocos de reserva...');
-  
+
   // Dividir em blocos usando separadores "=="
   const blocks = pnrText.split(/(?:\n\s*)?={2,}(?:\s*\n)?/);
   console.log(`📦 Encontrados ${blocks.length} blocos de reserva`);
-  
-  const isSegmentLine = (line: string): boolean => {
-    const trimmed = line.trim();
-    if (!trimmed) return false;
-    // Formato completo com status HS1: AA 950 12FEB GRUJFK HS1 2235 #0615
-    const full = /^([A-Z0-9]{2,3})\s+\d{2,5}\s+\d{1,2}[A-Z]{3}\s+[A-Z]{3}[A-Z]{3}\s+[A-Z]{2}\d\s+\d{3,4}\s+\#?\d{3,4}(?:\s+\d{1,2}[A-Z]{3})?$/;
-    // Formato flexível sem status: AA 950 12FEB GRUJFK 2235 #0615
-    const flexible = /^([A-Z0-9]{2,3})\s+\d{2,5}\s+\d{1,2}[A-Z]{3}\s+[A-Z]{3}[A-Z]{3}\s+\d{3,4}\s+\#?\d{3,4}$/;
-    return full.test(trimmed) || flexible.test(trimmed);
-  };
 
   const filteredBlocks = blocks.map((block, index) => {
     if (!block.trim()) return '';
-    
+
     const lines = block.split('\n').filter(line => line.trim());
     console.log(`📦 Bloco ${index + 1}: ${lines.length} linhas`);
-    
-    if (lines.length <= 2) {
-      console.log(`⚠️ Bloco ${index + 1}: Muito pequeno (${lines.length} linhas), mantendo original`);
-      return block;
-    }
-    
-    // Se as primeiras linhas já são segmentos de voo, NÃO remover
-    const first = lines[0] || '';
-    const second = lines[1] || '';
-    if (isSegmentLine(first) || isSegmentLine(second)) {
-      console.log(`ℹ️ Bloco ${index + 1}: primeiras linhas parecem segmentos, mantendo original`);
-      return block;
-    }
+
 
     // Ignorar as duas primeiras linhas e manter o resto
     const filteredLines = lines.slice(2);
     console.log(`✅ Bloco ${index + 1}: Removidas 2 primeiras linhas, mantidas ${filteredLines.length} linhas`);
     console.log(`🔍 Linhas removidas:`, lines.slice(0, 2));
     console.log(`🔍 Linhas mantidas:`, filteredLines.slice(0, 3));
-    
+
     return filteredLines.join('\n');
   });
-  
+
   // Reconstruir o texto com separadores "==" entre blocos
   const result = filteredBlocks
     .filter(block => block.trim())
     .join('\n==\n');
-  
+
   console.log('✅ Filtro concluído:', result.substring(0, 200) + '...');
   return result;
 }
@@ -112,35 +92,61 @@ function filterReservationBlocks(pnrText: string): string {
 // Simulação do parser Python (será substituído por API real)
 export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   if (!pnrText.trim()) return null;
-  
+
+  // Verificar se há separador de múltiplas cotações
+  if (pnrText.match(/(?:\n\s*)?={2,}(?:\s*\n)?/)) {
+    console.log('🔀 Detectado PNR com múltiplas opções (==)');
+    const parts = pnrText.split(/(?:\n\s*)?={2,}(?:\s*\n)?/).filter(p => p.trim().length > 0);
+
+    if (parts.length > 1) {
+      console.log(`📦 Encontradas ${parts.length} opções de cotação`);
+      const quotations = await Promise.all(parts.map(part => _parseSinglePNR(part)));
+      const validQuotations = quotations.filter(q => q !== null) as ParsedPNR[];
+
+      if (validQuotations.length > 0) {
+        return {
+          ...validQuotations[0],
+          is_multi: true,
+          quotations: validQuotations
+        };
+      }
+    }
+  }
+
+  return _parseSinglePNR(pnrText);
+}
+
+async function _parseSinglePNR(pnrText: string): Promise<ParsedPNR | null> {
+  if (!pnrText.trim()) return null;
+
   // Simular delay de processamento
   await new Promise(resolve => setTimeout(resolve, 500));
-  
+
   // Filtrar automaticamente as duas primeiras linhas de cada bloco de reserva
   const filteredText = filterReservationBlocks(pnrText);
   console.log('🔍 PNR filtrado (ignorando 2 primeiras linhas de cada bloco):', filteredText);
-  
+
   // Parser básico para demonstração
   const lines = filteredText.split('\n').filter(line => line.trim());
   const trechos = lines.filter(line => /^[A-Z]{2}\s+\d+/.test(line.trim()));
-  
+
   // Detectar moeda do PNR - procura por padrões como "EUR6500" ou "USD 6500" ou "usd" no texto
   let detectedCurrency = 'USD'; // Default
-  const currencyMatch = pnrText.match(/\b(usd|eur|brl|gbp|cad|aud)\b/i) || 
-                        pnrText.match(/(EUR|USD|BRL|GBP|CAD|AUD)\d+/i);
+  const currencyMatch = pnrText.match(/\b(usd|eur|brl|gbp|cad|aud)\b/i) ||
+    pnrText.match(/(EUR|USD|BRL|GBP|CAD|AUD)\d+/i);
   if (currencyMatch) {
     detectedCurrency = currencyMatch[1].toUpperCase();
   }
-  
+
   // Detectar múltiplas tarifas em dois formatos
   // 1) "tarifa usd X + txs usd Y *Categoria[/Tipo]"
   // 2) "USD X + txs USD Y * categoria[/tipo]"
   const fareLinesTarifa = pnrText.match(/^[ \t]*tarifa\s+usd\s+[\d.,]+\s*\+\s*txs\s+usd\s+[\d.,]+\s*\*[^\n]+/gim) || [];
   const fareLinesUSD = pnrText.match(/^[ \t]*usd\s*[\d.,]+\s*\+\s*txs\s+usd\s*[\d.,]+\s*\*\s*[^\n]+/gim) || [];
   const fareLines = [...fareLinesTarifa, ...fareLinesUSD];
-  
-  let fares: Array<{category: string; tarifa: string; taxas: string; paxType?: string}> = [];
-  
+
+  let fares: Array<{ category: string; tarifa: string; taxas: string; paxType?: string }> = [];
+
   if (fareLines.length > 0) {
     // Múltiplas tarifas detectadas
     fares = fareLines.map(fareLine => {
@@ -151,22 +157,22 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
         const taxasValue = match[2]?.replace(',', '.') || '0';
         const categoryRaw = match[3]?.trim() || '';
         const paxTypeRaw = match[4]?.trim() || '';
-        
+
         // Normalizar categoria
-        const category = categoryRaw.toLowerCase() === 'exe' ? 'Exe' : 
-                         categoryRaw.toLowerCase() === 'primeira' ? 'Primeira' :
-                         categoryRaw.toLowerCase() === 'eco' ? 'Eco' :
-                         categoryRaw.toLowerCase() === 'pre' ? 'Pre' : 
-                         categoryRaw.toUpperCase();
-        
+        const category = categoryRaw.toLowerCase() === 'exe' ? 'Exe' :
+          categoryRaw.toLowerCase() === 'primeira' ? 'Primeira' :
+            categoryRaw.toLowerCase() === 'eco' ? 'Eco' :
+              categoryRaw.toLowerCase() === 'pre' ? 'Pre' :
+                categoryRaw.toUpperCase();
+
         // Normalizar tipo de passageiro
         const paxType = paxTypeRaw.toLowerCase() === 'chd' ? 'CHD' :
-                        paxTypeRaw.toLowerCase() === 'inf' ? 'INF' :
-                        paxTypeRaw.toLowerCase() === 'adt' ? 'ADT' :
-                        paxTypeRaw.toUpperCase() || 'ADT';
-        
+          paxTypeRaw.toLowerCase() === 'inf' ? 'INF' :
+            paxTypeRaw.toLowerCase() === 'adt' ? 'ADT' :
+              paxTypeRaw.toUpperCase() || 'ADT';
+
         console.log(`🔍 Tarifa detectada: ${category}/${paxType} - USD ${tarifaValue} + USD ${taxasValue}`);
-        
+
         return {
           category,
           tarifa: tarifaValue,
@@ -175,19 +181,19 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
         };
       }
       return null;
-    }).filter(fare => fare !== null) as Array<{category: string; tarifa: string; taxas: string; paxType?: string}>;
+    }).filter(fare => fare !== null) as Array<{ category: string; tarifa: string; taxas: string; paxType?: string }>;
   } else {
     // Fallback para formato antigo - uma única tarifa
     const fareLineMatch = pnrText.match(/USD([\d.,]+)\s*\+\s*txs\s+USD([\d.,]+)\s*\*\s*(\w+)/i);
-    
+
     if (fareLineMatch) {
       // Padrão completo encontrado - uma única tarifa
       const tarifaValue = fareLineMatch[1]?.replace(',', '.') || '0';
       const taxasValue = fareLineMatch[2]?.replace(',', '.') || '0';
-      const category = fareLineMatch[3]?.toLowerCase() === 'exe' ? 'Exe' : 
-                       fareLineMatch[3]?.toLowerCase() === 'eco' ? 'Eco' :
-                       fareLineMatch[3]?.toLowerCase() === 'pre' ? 'Pre' : 'ADT';
-      
+      const category = fareLineMatch[3]?.toLowerCase() === 'exe' ? 'Exe' :
+        fareLineMatch[3]?.toLowerCase() === 'eco' ? 'Eco' :
+          fareLineMatch[3]?.toLowerCase() === 'pre' ? 'Pre' : 'ADT';
+
       fares = [{
         category,
         tarifa: tarifaValue,
@@ -212,15 +218,15 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
           fares = fareTaxesLines.map(line => {
             const match = line.match(/FARE:\s+(\w+)\s+([\d.,]+)\s*\n\s*TAXES:\s+([\d.,]+)/i);
             if (match) {
-              const category = match[1]?.toLowerCase() === 'exe' ? 'Exe' : 
-                              match[1]?.toLowerCase() === 'eco' ? 'Eco' :
-                              match[1]?.toLowerCase() === 'pre' ? 'Pre' : 
-                              match[1]?.toUpperCase() || 'Tarifa';
+              const category = match[1]?.toLowerCase() === 'exe' ? 'Exe' :
+                match[1]?.toLowerCase() === 'eco' ? 'Eco' :
+                  match[1]?.toLowerCase() === 'pre' ? 'Pre' :
+                    match[1]?.toUpperCase() || 'Tarifa';
               const tarifaValue = match[2]?.replace(',', '.') || '0';
               const taxasValue = match[3]?.replace(',', '.') || '0';
-              
+
               console.log(`🔍 Tarifa FARE/TAXES detectada: ${category} - USD ${tarifaValue} + USD ${taxasValue}`);
-              
+
               return {
                 category,
                 tarifa: tarifaValue,
@@ -229,91 +235,69 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
               };
             }
             return null;
-          }).filter(fare => fare !== null) as Array<{category: string; tarifa: string; taxas: string; paxType?: string}>;
+          }).filter(fare => fare !== null) as Array<{ category: string; tarifa: string; taxas: string; paxType?: string }>;
         } else {
           // Último fallback - método antigo
           const tarifaMatches = pnrText.match(/USD([\d.,]+)/gi) || [];
           const taxasMatches = pnrText.match(/txs\s+USD([\d.,]+)/gi) || [];
-        
-        fares = tarifaMatches.map((tarifa, i) => {
-          const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
-          const taxasValue = taxasMatches[i]?.match(/txs\s+USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
-          
-          // Detectar categoria do sufixo
-          const lineIndex = pnrText.indexOf(tarifa);
-          const lineEnd = pnrText.indexOf('\n', lineIndex);
-          const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
-          
-          let category = 'ADT';
-          if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
-            category = 'CHD';
-          } else if (fullLine.toLowerCase().includes('exe')) {
-            category = 'Exe';
-          } else if (fullLine.toLowerCase().includes('eco')) {
-            category = 'Eco';
-          } else if (fullLine.toLowerCase().includes('pre')) {
-            category = 'Pre';
-          }
-          
-          return {
-            category,
-            tarifa: tarifaValue,
-            taxas: taxasValue,
-          };
-        });
+
+          fares = tarifaMatches.map((tarifa, i) => {
+            const tarifaValue = tarifa.match(/USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+            const taxasValue = taxasMatches[i]?.match(/txs\s+USD([\d.,]+)/)?.[1]?.replace(',', '.') || '0';
+
+            // Detectar categoria do sufixo
+            const lineIndex = pnrText.indexOf(tarifa);
+            const lineEnd = pnrText.indexOf('\n', lineIndex);
+            const fullLine = pnrText.substring(lineIndex, lineEnd > -1 ? lineEnd : pnrText.length);
+
+            let category = 'ADT';
+            if (fullLine.toLowerCase().includes('chd') || fullLine.toLowerCase().includes('child')) {
+              category = 'CHD';
+            } else if (fullLine.toLowerCase().includes('exe')) {
+              category = 'Exe';
+            } else if (fullLine.toLowerCase().includes('eco')) {
+              category = 'Eco';
+            } else if (fullLine.toLowerCase().includes('pre')) {
+              category = 'Pre';
+            }
+
+            return {
+              category,
+              tarifa: tarifaValue,
+              taxas: taxasValue,
+            };
+          });
         }
       }
     }
   }
-  
+
   // Detectar múltiplas cotações
   const isMulti = pnrText.includes('==');
-  
+
   // Extrair dados adicionais
   const pagtoLine = pnrText.match(/pagto\s+([^\n]+)/i)?.[1]?.trim();
-  const netNet = pnrText.match(/\bnet\s*[- ]?\s*net\b/i)?.[0]?.replace(/\s*-\s*/g, ' - ').trim();
-  const parcelaMatch = pnrText.match(/\bparcela\s+\d+x\b/i)?.[0]?.trim() || pnrText.match(/\bparcelado\s+em\s+\d+x\b/i)?.[0]?.trim();
-  
-  // Detectar número de parcelas - formato: "pagto 10x" ou "parcela 4x"
-  const parcelasMatch = pnrText.match(/(?:pagto|parcela(?:do)?)\s+(\d+)x/i);
-  const numParcelas = parcelasMatch ? parseInt(parcelasMatch[1]) : undefined;
-  
-  // Função para sanitizar payment terms removendo "net net"
-  const sanitizePaymentTerms = (paymentLine: string, numParcelas: number): string => {
-    if (!paymentLine) return `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
-    
-    // Remover "net net" e manter apenas informação de parcelas
-    const cleanLine = paymentLine.replace(/\s*-\s*net\s*net\b/gi, '').trim();
-    
-    // Se contém informação de parcelas, usar ela
-    const parcelasMatch = cleanLine.match(/(\d+)x/i);
+
+  // Extração de variáveis que estavam faltando
+  const baggage = pnrText.match(/bagagem\s*:\s*([^\n]+)/i)?.[1]?.trim() || '1PC';
+  const notes = pnrText.match(/notes\s*:\s*([^\n]+)/i)?.[1]?.trim();
+
+  // Tentar extrair número de parcelas do texto de pagamento se não for encontrado depois
+  let numParcelas = 1;
+  if (pagtoLine) {
+    const parcelasMatch = pagtoLine.match(/(\d+)x/i);
     if (parcelasMatch) {
-      return `Em até ${parcelasMatch[1]}x no cartão de crédito. Taxas à vista.`;
+      numParcelas = parseInt(parcelasMatch[1], 10);
     }
-    
-    // Fallback para número de parcelas detectado
-    return `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
-  };
-  
-  const paymentTerms = pagtoLine ? sanitizePaymentTerms(pagtoLine, numParcelas || 4) : (pnrText.includes('parcela 4x') ? 'Em até 4x no cartão de crédito. Taxas à vista.' : 'Em até 4x no cartão de crédito. Taxas à vista.');
-  // Parsing melhorado de bagagem: 2pc 32kg/exe-pri, 1pc 23kg, etc.
-  const baggageMatch = pnrText.match(/(\d+pc\s+\d+kg(?:\/[a-z\-]+)*)/i);
-  const baggage = baggageMatch?.[1]?.trim() || 'Conforme regra da tarifa';
-  const notes = pnrText.match(/alteração e reembolso[^\n]+/i)?.[0]?.trim() || '';
-  
-  // Detectar percentual de RAV - formato: "du 7%"
-  const ravMatch = pnrText.match(/du\s+(\d+)%/i);
-  const ravPercent = ravMatch ? parseInt(ravMatch[1]) : undefined;
-  
-  // Detectar incentivo percentual - formato: "in 3%" ou "incentivo 3%"
-  const incentivoPercentMatch = pnrText.match(/\bin\s+(\d+)%/i) || pnrText.match(/\bincentivo\s+(\d+)%/i);
-  const incentivoPercent = incentivoPercentMatch ? parseInt(incentivoPercentMatch[1]) : undefined;
-  
-  // Detectar Fee USD - formato: "Fee USD 50,00" ou "+ Fee USD 50,00"
-  const feeMatch = pnrText.match(/(?:\+|\s)?fee\s+usd\s+([\d.,]+)/i);
-  const feeUSD = feeMatch ? parseFloat(feeMatch[1].replace(',', '.')) : undefined;
-  
-  // Decodificar segmentos com horários corretos
+  }
+
+  // Extração de valores numéricos adicionais
+  const ravPercent = 0; // Default
+  const incentivoPercent = 0; // Default
+  const feeUSD = 0; // Default
+
+  const paymentTerms = sanitizePaymentTerms(pagtoLine || '', numParcelas);
+
   const segments = await Promise.all(trechos.map(async trecho => {
     // Usar a mesma lógica de decodeItinerary para garantir consistência
     const cleanedTrecho = trecho.replace(/^\d+\s+/, '');
@@ -323,7 +307,6 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     const isTime = (str: string): boolean => /^#?\d{3,4}$/.test(str) || /^\d{2}:\d{2}$/.test(str);
 
     let cia, flight, dateStr, route, depTime, arrTime, arrDate;
-    let classIndex = -1;
 
     // Formato: "AZ 679 25NOV GRUFCO HS2 2040 #1200"
     if (parts.length >= 6) {
@@ -380,7 +363,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     // Calcular data de chegada
     let finalArrDate = decodedDate;
     const isOvernight = trecho.includes('#');
-    
+
     if (arrDate && /^\d{1,2}[A-Z]{3}$/.test(arrDate)) {
       finalArrDate = decodeDate(arrDate);
     } else if (isOvernight) {
@@ -396,7 +379,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
     const [arrHour, arrMin] = arrTimeFormatted.split(':');
 
     // Criar string ISO manualmente preservando o horário local (não usar toISOString que converte para UTC)                                                  
-    const depTimeISO = `${depYear}-${depMonth.padStart(2, '0')}-${depDay.padStart(2, '0')}T${depHour.padStart(2, '0')}:${depMin.padStart(2, '0')}:00`;          
+    const depTimeISO = `${depYear}-${depMonth.padStart(2, '0')}-${depDay.padStart(2, '0')}T${depHour.padStart(2, '0')}:${depMin.padStart(2, '0')}:00`;
     const arrTimeISO = `${arrYear}-${arrMonth.padStart(2, '0')}-${arrDay.padStart(2, '0')}T${arrHour.padStart(2, '0')}:${arrMin.padStart(2, '0')}:00`;
     console.log(`[PARSER] depHour: "${depHour}", depMin: "${depMin}", depTimeISO: "${depTimeISO}"`);
     console.log(`[PARSER] arrHour: "${arrHour}", arrMin: "${arrMin}", arrTimeISO: "${arrTimeISO}"`);
@@ -412,7 +395,7 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   }));
 
   const validSegments = segments.filter(segment => segment !== null);
-  
+
   return {
     tarifa: fares[0]?.tarifa || '0',
     taxas_base: fares[0]?.taxas || '0',
@@ -436,46 +419,110 @@ export async function parsePNR(pnrText: string): Promise<ParsedPNR | null> {
   };
 }
 
+function sanitizePaymentTerms(paymentLine: string, numParcelas: number): string {
+  // Remover informações internas (net net, comissão, etc.)
+  const cleanLine = paymentLine
+    .replace(/\s*-\s*net\s*net\b/gi, '')
+    .replace(/\s*-\s*comiss[ãa]o\s*\d+%?/gi, '')
+    .replace(/\s*net\s*net\b/gi, '')
+    .trim();
+
+  // Se contém informação de parcelas, usar ela
+  const parcelasMatch = cleanLine.match(/(\d+)x/i);
+  if (parcelasMatch) {
+    return `Em até ${parcelasMatch[1]}x no cartão de crédito. Taxas à vista.`;
+  }
+
+  if (numParcelas > 1) {
+    return `Em até ${numParcelas}x no cartão de crédito. Taxas à vista.`;
+  }
+
+  return cleanLine || 'À vista';
+}
+
+// Lista de fallback caso o banco de dados falhe ou esteja vazio
+const FALLBACK_COMPANIES: Record<string, string> = {
+  'LA': 'LATAM Airlines',
+  'BA': 'British Airways',
+  'IB': 'Iberia',
+  'TP': 'TAP Air Portugal',
+  'AF': 'Air France',
+  'KL': 'KLM',
+  'LH': 'Lufthansa',
+  'UA': 'United Airlines',
+  'AA': 'American Airlines',
+  'DL': 'Delta Air Lines',
+  'AZ': 'ITA Airways',
+  'LX': 'Swiss International Air Lines',
+  'JL': 'Japan Airlines',
+  'EK': 'Emirates',
+  'SA': 'South African Airways'
+};
+
+function getCompanyName(code: string, airlineMap?: Map<string, string>): string {
+  // 1. Tentar buscar no mapa do banco de dados
+  if (airlineMap && airlineMap.has(code)) {
+    return airlineMap.get(code)!;
+  }
+
+  // 2. Tentar buscar na lista de fallback
+  if (FALLBACK_COMPANIES[code]) {
+    return FALLBACK_COMPANIES[code];
+  }
+
+  // 3. Retornar o próprio código se não encontrar
+  return code;
+}
+
 // Simulação do decoder de itinerário
 export async function decodeItinerary(trechos: string[]): Promise<DecodedItinerary | null> {
   if (!trechos.length) return null;
-  
+
+  // Carregar catálogo de companhias aéreas para resolução de nomes
+  let airlineMap = new Map<string, string>();
+  try {
+    const airlines = await getAirlines().catch(() => []);
+    airlineMap = new Map(airlines.map(a => [a.iata2, a.name]));
+    console.log(`[PARSER] Catálogo de companhias carregado: ${airlineMap.size} itens`);
+  } catch (error) {
+    console.warn('[PARSER] Falha ao carregar catálogo de companhias, usando fallback:', error);
+  }
+
   await new Promise(resolve => setTimeout(resolve, 300));
-  
+
   const flightsResults = await Promise.all(trechos.map(async trecho => {
     // Exemplo: "LA 8084   22NOV GRULHR HS1  2340  #1405"
     // Exemplo: "DL  104   14OCT GRUATL HS1  2250  #0735"
     // Exemplo: "1 AA 950 12FEB  GRUJFK SS2  2235  0615   13FEB" (novo formato)
-    
+
     // Remover número de linha no início (ex: "1 AA" -> "AA")
     const cleanedTrecho = trecho.replace(/^\d+\s+/, '');
-    
+
     const parts = cleanedTrecho.trim().split(/\s+/);
     console.log('🔍 Trecho original:', trecho);
     console.log('🔍 cleanedTrecho:', cleanedTrecho);
     console.log('🔍 Parts divididas:', parts);
     console.log('🔍 Parts com índices:', parts.map((p, i) => `[${i}]: "${p}"`).join(', '));
-    
+
     // Função para detectar se uma string é uma classe de voo (ex: HS2, HK1, SS1)
     const isBookingClass = (str: string): boolean => {
       // Classe geralmente é 2-3 letras seguidas de 1-2 dígitos (HS2, HK1, SS1, J2, Y1, etc.)
       return /^[A-Z]{2,3}\d{1,2}$/.test(str);
     };
-    
+
     // Função para detectar se uma string é um horário (4 dígitos ou # seguido de 4 dígitos)
     const isTime = (str: string): boolean => {
       return /^#?\d{3,4}$/.test(str) || /^\d{2}:\d{2}$/.test(str);
     };
-    
+
     // Tentar diferentes formatos
     let cia, flight, dateStr, route, depTime, arrTime, arrDate;
-    let classIndex = -1;
-    
+
     // Formato novo: "AA 950 12FEB GRUJFK SS2 2235 0615 13FEB"
     if (parts.length >= 8) {
       [cia, flight, dateStr, route] = parts.slice(0, 4);
       // Procurar classe após a rota
-      classIndex = parts.findIndex((p, i) => i >= 4 && isBookingClass(p));
+      const classIndex = parts.findIndex((p, i) => i >= 4 && isBookingClass(p));
       if (classIndex >= 0) {
         depTime = parts[classIndex + 1];
         arrTime = parts[classIndex + 2];
@@ -483,7 +530,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       } else {
         [, , , , depTime, arrTime, arrDate] = parts;
       }
-    } 
+    }
     // Formato: "AZ 679 25NOV GRUFCO HS2 2040 #1200" ou "DL 104 14OCT GRUATL HS1 2250 #0735"
     // ou "AF 459 16NOV GRUCDG 2040 #1150" (sem classe)
     else if (parts.length >= 6) {
@@ -508,7 +555,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
         arrTime = parts[5];
         arrDate = parts[6];
       }
-    } 
+    }
     // Formato: "LA 8084 22NOV GRULHR HS1 2340 #1405"
     else if (parts.length >= 5) {
       [cia, flight, dateStr, route] = parts.slice(0, 4);
@@ -530,7 +577,7 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       console.warn('⚠️ Trecho inválido - formato não reconhecido:', trecho);
       return null;
     }
-    
+
     // Validar se temos os dados mínimos necessários
     if (!cia || !flight || !dateStr || !route) {
       console.warn('⚠️ Trecho inválido - dados insuficientes:', trecho);
@@ -547,16 +594,16 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
 
     // Decodificar horários
     const depTimeFormatted = formatTime(depTime);
-    
+
     // Para voos noturnos (#) ou com data de chegada explícita, calcular a data correta
     let finalArrDate = decodedDate;
     let isOvernight = false;
-    
+
     // Se há data de chegada explícita (formato: "13FEB"), usar ela
     if (arrDate && /^\d{1,2}[A-Z]{3}$/.test(arrDate)) {
       finalArrDate = decodeDate(arrDate);
       isOvernight = true;
-    } 
+    }
     // Senão, se tem # (voo noturno), adicionar 1 dia
     else if (trecho.includes('#')) {
       isOvernight = true;
@@ -565,28 +612,28 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       finalArrDate = `${nextDay.getDate().toString().padStart(2, '0')}/${(nextDay.getMonth() + 1).toString().padStart(2, '0')}/${nextDay.getFullYear()}`;
     }
     const arrTimeFormatted = formatTime(arrTime);
-    
+
     // Decodificar aeroportos
     const [depAirport, arrAirport] = await Promise.all([
       getAirportName(orig),
       getAirportName(dest)
     ]);
-    
+
     return {
-      company: { iataCode: cia, description: getCompanyName(cia) },
+      company: { iataCode: cia, description: getCompanyName(cia, airlineMap) },
       flight,
       departureDate: decodedDate,
       departureTime: depTimeFormatted,
       landingDate: finalArrDate,
       landingTime: arrTimeFormatted,
-      departureAirport: { 
-        iataCode: orig, 
+      departureAirport: {
+        iataCode: orig,
         description: depAirport.name,
         found: depAirport.found,
         error: depAirport.error
       },
-      landingAirport: { 
-        iataCode: dest, 
+      landingAirport: {
+        iataCode: dest,
         description: arrAirport.name,
         found: arrAirport.found,
         error: arrAirport.error
@@ -595,9 +642,9 @@ export async function decodeItinerary(trechos: string[]): Promise<DecodedItinera
       isOvernight: isOvernight, // Indica se é voo noturno (chegada no dia seguinte)
     };
   }));
-  
+
   const flights = flightsResults.filter((flight) => flight !== null) as DecodedFlight[];
-  
+
   return {
     source: 'internal-parser',
     overnights: flights.filter(f => f?.overnight).length,
@@ -611,35 +658,35 @@ function decodeDate(dateStr: string): string {
     'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04', 'MAY': '05', 'JUN': '06',
     'JUL': '07', 'AUG': '08', 'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
   };
-  
+
   const match = dateStr.match(/(\d{1,2})([A-Z]{3})/);
   if (!match) {
     console.warn('❌ Data inválida no PNR:', dateStr);
     const today = new Date();
     return `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear()}`;
   }
-  
+
   const [, day, month] = match;
   const monthNum = monthMap[month] || '11';
-  
+
   // Usar ano atual (2025) e ajustar se necessário
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1; // 1-12
   const currentDay = new Date().getDate();
-  
+
   let year = currentYear;
   const parsedMonth = parseInt(monthNum);
   const parsedDay = parseInt(day);
-  
+
   // Se a data já passou este ano, assumir próximo ano
-  if (parsedMonth < currentMonth || 
-      (parsedMonth === currentMonth && parsedDay < currentDay)) {
+  if (parsedMonth < currentMonth ||
+    (parsedMonth === currentMonth && parsedDay < currentDay)) {
     year = currentYear + 1;
   }
-  
+
   const brazilianDate = `${day.padStart(2, '0')}/${monthNum}/${year}`;
   console.log(`📅 Decodificando data: ${dateStr} -> ${brazilianDate}`);
-  
+
   return brazilianDate;
 }
 
@@ -696,33 +743,12 @@ function formatTime(timeStr: string | undefined): string {
   return '00:00';
 }
 
-function getCompanyName(code: string): string {
-  const companies: Record<string, string> = {
-    'LA': 'LATAM Airlines',
-    'BA': 'British Airways',
-    'IB': 'Iberia',
-    'TP': 'TAP Air Portugal',
-    'AF': 'Air France',
-    'KL': 'KLM',
-    'LH': 'Lufthansa',
-    'UA': 'United Airlines',
-    'AA': 'American Airlines',
-    'DL': 'Delta Air Lines',
-    'AZ': 'ITA Airways',
-    'LX': 'Swiss International Air Lines',
-    'JL': 'Japan Airlines',
-    'EK': 'Emirates',
-    'SA': 'South African Airways'
-  };
-  return companies[code] || code;
-}
-
 async function getAirportName(code: string): Promise<{ name: string; found: boolean; error?: string }> {
   try {
     // Usar o sistema robusto de decodificação
     const { robustDecoder } = await import('./robust-decoder');
     const result = await robustDecoder.decodeAirport(code);
-    
+
     return {
       name: result.description,
       found: result.found,
@@ -730,7 +756,7 @@ async function getAirportName(code: string): Promise<{ name: string; found: bool
     };
   } catch (error) {
     console.error('❌ Erro crítico no sistema de decodificação:', error);
-    
+
     // Fallback de emergência - usar código simples
     return {
       name: code,
