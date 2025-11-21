@@ -112,7 +112,7 @@ export function BookingsPage() {
       incentivoPercent,
       changePenalty: 'USD 500 + diferença tarifária'
     });
-  }, [summaryData, pricingResult]);
+  }, [summaryData, pricingResult, activeOptionIndex]);
 
   return (
     <div className="space-y-6">

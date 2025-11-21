@@ -1,0 +1,292 @@
+================================================================================
+TESTE DO PARSER - PNR COM M├ÜLTIPLAS OP├ç├òES
+================================================================================
+
+­ƒöÇ Detectado PNR com m├║ltiplas op├º├Áes (==)
+­ƒôª Encontradas 2 op├º├Áes de cota├º├úo
+­ƒöì Iniciando filtro de blocos de reserva...
+­ƒôª Encontrados 1 blocos de reserva
+­ƒôª Bloco 1: 9 linhas
+Ô£à Bloco 1: Removidas 2 primeiras linhas, mantidas 7 linhas
+­ƒöì Linhas removidas: [
+  'AZ  679   25NOV GRUFCO HS2  2040  #1200',
+  'AZ 2038   26NOV FCOLIN HS2  1400   1510'
+]
+­ƒöì Linhas mantidas: [
+  'AZ 1462   06DEC VCEFCO HS2  1515   1625',
+  'AZ  674   06DEC FCOGRU HS2  2220  #0625',
+  'tarifa usd 2529.00 + txs usd 66.00 '
+]
+Ô£à Filtro conclu├¡do: AZ 1462   06DEC VCEFCO HS2  1515   1625
+AZ  674   06DEC FCOGRU HS2  2220  #0625
+tarifa usd 2529.00 + txs usd 66.00 
+pagto 6x - net net
+2pc 32kg
+Assentos pagos
+Fee usd 50.00...
+­ƒöì PNR filtrado (ignorando 2 primeiras linhas de cada bloco): AZ 1462   06DEC VCEFCO HS2  1515   1625
+AZ  674   06DEC FCOGRU HS2  2220  #0625
+tarifa usd 2529.00 + txs usd 66.00 
+pagto 6x - net net
+2pc 32kg
+Assentos pagos
+Fee usd 50.00
+­ƒôà Decodificando data: 06DEC -> 06/12/2025
+[PARSER] Trecho: AZ 1462   06DEC VCEFCO HS2  1515   1625
+[PARSER] depTime extra├¡do: "1515"
+[formatTime] timeStr: "1515", cleanTime: "1515", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "1515"
+[formatTime] cleanTime: "1515", normalizedTime: "1515", length: 4
+[formatTime] hours substring(0,2): "15", minutes substring(2,4): "15"
+[formatTime] h parsed: 15, m parsed: 15
+[formatTime] resultado final: "15:15"
+[PARSER] depTime formatado: "15:15"
+[formatTime] timeStr: "1625", cleanTime: "1625", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "1625"
+[formatTime] cleanTime: "1625", normalizedTime: "1625", length: 4
+[formatTime] hours substring(0,2): "16", minutes substring(2,4): "25"
+[formatTime] h parsed: 16, m parsed: 25
+[formatTime] resultado final: "16:25"
+[PARSER] arrTime formatado: "16:25"
+[PARSER] depHour: "15", depMin: "15", depTimeISO: "2025-12-06T15:15:00"
+[PARSER] arrHour: "16", arrMin: "25", arrTimeISO: "2025-12-06T16:25:00"
+­ƒôà Decodificando data: 06DEC -> 06/12/2025
+[PARSER] Trecho: AZ  674   06DEC FCOGRU HS2  2220  #0625
+[PARSER] depTime extra├¡do: "2220"
+[formatTime] timeStr: "2220", cleanTime: "2220", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "2220"
+[formatTime] cleanTime: "2220", normalizedTime: "2220", length: 4
+[formatTime] hours substring(0,2): "22", minutes substring(2,4): "20"
+[formatTime] h parsed: 22, m parsed: 20
+[formatTime] resultado final: "22:20"
+[PARSER] depTime formatado: "22:20"
+[formatTime] timeStr: "0625", cleanTime: "0625", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "0625"
+[formatTime] cleanTime: "0625", normalizedTime: "0625", length: 4
+[formatTime] hours substring(0,2): "06", minutes substring(2,4): "25"
+[formatTime] h parsed: 6, m parsed: 25
+[formatTime] resultado final: "06:25"
+[PARSER] arrTime formatado: "06:25"
+[PARSER] depHour: "22", depMin: "20", depTimeISO: "2025-12-06T22:20:00"
+[PARSER] arrHour: "06", arrMin: "25", arrTimeISO: "2025-12-07T06:25:00"
+­ƒöì Iniciando filtro de blocos de reserva...
+­ƒôª Encontrados 1 blocos de reserva
+­ƒôª Bloco 1: 8 linhas
+Ô£à Bloco 1: Removidas 2 primeiras linhas, mantidas 6 linhas
+­ƒöì Linhas removidas: [
+  'LA 8072   25NOV GRUMXP HK2  1800  #0915',
+  'AZ 1460   06DEC VCEFCO HK2  0615   0725'
+]
+­ƒöì Linhas mantidas: [
+  'LA 8121   06DEC FCOGRU HK2  1200   2010',
+  'tarifa usd 2996.00 + txs usd 272.00 ',
+  'pagto 4x - comiss├úo 7%'
+]
+Ô£à Filtro conclu├¡do: LA 8121   06DEC FCOGRU HK2  1200   2010
+tarifa usd 2996.00 + txs usd 272.00 
+pagto 4x - comiss├úo 7%
+2pc 23kg
+Assentos pagos na AZ
+Fee usd 50.00...
+­ƒöì PNR filtrado (ignorando 2 primeiras linhas de cada bloco): LA 8121   06DEC FCOGRU HK2  1200   2010
+tarifa usd 2996.00 + txs usd 272.00 
+pagto 4x - comiss├úo 7%
+2pc 23kg
+Assentos pagos na AZ
+Fee usd 50.00
+­ƒôà Decodificando data: 06DEC -> 06/12/2025
+[PARSER] Trecho: LA 8121   06DEC FCOGRU HK2  1200   2010
+[PARSER] depTime extra├¡do: "1200"
+[formatTime] timeStr: "1200", cleanTime: "1200", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "1200"
+[formatTime] cleanTime: "1200", normalizedTime: "1200", length: 4
+[formatTime] hours substring(0,2): "12", minutes substring(2,4): "00"
+[formatTime] h parsed: 12, m parsed: 0
+[formatTime] resultado final: "12:00"
+[PARSER] depTime formatado: "12:00"
+[formatTime] timeStr: "2010", cleanTime: "2010", length: 4
+[formatTime] cleanTime ap├│s remover n├úo-num├®ricos: "2010"
+[formatTime] cleanTime: "2010", normalizedTime: "2010", length: 4
+[formatTime] hours substring(0,2): "20", minutes substring(2,4): "10"
+[formatTime] h parsed: 20, m parsed: 10
+[formatTime] resultado final: "20:10"
+[PARSER] arrTime formatado: "20:10"
+[PARSER] depHour: "12", depMin: "00", depTimeISO: "2025-12-06T12:00:00"
+[PARSER] arrHour: "20", arrMin: "10", arrTimeISO: "2025-12-06T20:10:00"
+­ƒôè RESULTADO DO PARSE:
+{
+  "tarifa": "2529.00",
+  "taxas_base": "66.00",
+  "fares": [
+    {
+      "category": "Tarifa",
+      "tarifa": "2529.00",
+      "taxas": "66.00"
+    }
+  ],
+  "fee": "0",
+  "incentivo": "0",
+  "trechos": [
+    "AZ 1462   06DEC VCEFCO HS2  1515   1625",
+    "AZ  674   06DEC FCOGRU HS2  2220  #0625"
+  ],
+  "multa": "0",
+  "currency": "USD",
+  "is_multi": true,
+  "segments": [
+    {
+      "carrier": "AZ",
+      "flight": "1462",
+      "depAirport": "VCE",
+      "arrAirport": "FCO",
+      "depTimeISO": "2025-12-06T15:15:00",
+      "arrTimeISO": "2025-12-06T16:25:00"
+    },
+    {
+      "carrier": "AZ",
+      "flight": "674",
+      "depAirport": "FCO",
+      "arrAirport": "GRU",
+      "depTimeISO": "2025-12-06T22:20:00",
+      "arrTimeISO": "2025-12-07T06:25:00"
+    }
+  ],
+  "paymentTerms": "Em at├® 6x no cart├úo de cr├®dito. Taxas ├á vista.",
+  "baggage": "1PC",
+  "bagagem_hint": "1PC",
+  "numParcelas": 6,
+  "ravPercent": 0,
+  "incentivoPercent": 0,
+  "feeUSD": 0,
+  "quotations": [
+    {
+      "tarifa": "2529.00",
+      "taxas_base": "66.00",
+      "fares": [
+        {
+          "category": "Tarifa",
+          "tarifa": "2529.00",
+          "taxas": "66.00"
+        }
+      ],
+      "fee": "0",
+      "incentivo": "0",
+      "trechos": [
+        "AZ 1462   06DEC VCEFCO HS2  1515   1625",
+        "AZ  674   06DEC FCOGRU HS2  2220  #0625"
+      ],
+      "multa": "0",
+      "currency": "USD",
+      "is_multi": false,
+      "segments": [
+        {
+          "carrier": "AZ",
+          "flight": "1462",
+          "depAirport": "VCE",
+          "arrAirport": "FCO",
+          "depTimeISO": "2025-12-06T15:15:00",
+          "arrTimeISO": "2025-12-06T16:25:00"
+        },
+        {
+          "carrier": "AZ",
+          "flight": "674",
+          "depAirport": "FCO",
+          "arrAirport": "GRU",
+          "depTimeISO": "2025-12-06T22:20:00",
+          "arrTimeISO": "2025-12-07T06:25:00"
+        }
+      ],
+      "paymentTerms": "Em at├® 6x no cart├úo de cr├®dito. Taxas ├á vista.",
+      "baggage": "1PC",
+      "bagagem_hint": "1PC",
+      "numParcelas": 6,
+      "ravPercent": 0,
+      "incentivoPercent": 0,
+      "feeUSD": 0
+    },
+    {
+      "tarifa": "2996.00",
+      "taxas_base": "272.00",
+      "fares": [
+        {
+          "category": "Tarifa",
+          "tarifa": "2996.00",
+          "taxas": "272.00"
+        }
+      ],
+      "fee": "0",
+      "incentivo": "0",
+      "trechos": [
+        "LA 8121   06DEC FCOGRU HK2  1200   2010"
+      ],
+      "multa": "0",
+      "currency": "USD",
+      "is_multi": false,
+      "segments": [
+        {
+          "carrier": "LA",
+          "flight": "8121",
+          "depAirport": "FCO",
+          "arrAirport": "GRU",
+          "depTimeISO": "2025-12-06T12:00:00",
+          "arrTimeISO": "2025-12-06T20:10:00"
+        }
+      ],
+      "paymentTerms": "Em at├® 4x no cart├úo de cr├®dito. Taxas ├á vista.",
+      "baggage": "1PC",
+      "bagagem_hint": "1PC",
+      "numParcelas": 4,
+      "ravPercent": 0,
+      "incentivoPercent": 0,
+      "feeUSD": 0
+    }
+  ]
+}
+
+================================================================================
+AN├üLISE DETALHADA:
+================================================================================
+
+Ô£à PNR parseado com sucesso!
+
+­ƒôî Informa├º├Áes Principais:
+   - ├ë multi-op├º├úo: SIM
+   - N├║mero de op├º├Áes: 2
+   - Moeda: USD
+
+­ƒôï OP├ç├âO 1:
+   - Tarifa: USD 2529.00
+   - Taxas: USD 66.00
+   - Fares detectados: 1
+     * Tarifa/ADT: Tarifa 2529.00 + Taxas 66.00
+   - Trechos: 2
+     1. AZ 1462   06DEC VCEFCO HS2  1515   1625
+     2. AZ  674   06DEC FCOGRU HS2  2220  #0625
+   - Segments processados: 2
+   - Payment Terms: Em at├® 6x no cart├úo de cr├®dito. Taxas ├á vista.
+   - Baggage: 1PC
+   - Notes: N/A
+   - Parcelas: 6
+   - RAV %: 0
+   - Incentivo %: 0
+   - Fee USD: 0
+
+­ƒôï OP├ç├âO 2:
+   - Tarifa: USD 2996.00
+   - Taxas: USD 272.00
+   - Fares detectados: 1
+     * Tarifa/ADT: Tarifa 2996.00 + Taxas 272.00
+   - Trechos: 1
+     1. LA 8121   06DEC FCOGRU HK2  1200   2010
+   - Segments processados: 1
+   - Payment Terms: Em at├® 4x no cart├úo de cr├®dito. Taxas ├á vista.
+   - Baggage: 1PC
+   - Notes: N/A
+   - Parcelas: 4
+   - RAV %: 0
+   - Incentivo %: 0
+   - Fee USD: 0
+
+================================================================================
+Ô£à TESTE CONCLU├ìDO COM SUCESSO
+================================================================================

@@ -1,6 +1,7 @@
 import type { ParsedBaggage, ParsedFare, ParsedOption, ParsedSegment } from '@/lib/types/email-parser';
 import type { DecodedFlight, DecodedItinerary } from '@/lib/parser';
 import type { PricingResult } from '@/lib/pricing';
+export type { PricingResult };
 
 export type PageKey = 'home' | 'catalog' | 'unknown-codes' | 'concierge';
 export type SupabaseStatus = 'testing' | 'connected' | 'error';

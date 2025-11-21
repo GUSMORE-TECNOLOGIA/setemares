@@ -2,7 +2,7 @@ import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/render
 
 // Tipo para dados de múltiplas opções
 export type MultiStackedPdfData = {
-  header: { 
+  header: {
     title: string;           // "COTAÇÃO Lisbon, Portugal"
     subtitle: string;        // "Opção com a TAP Air Portugal"
     departureLabel: string;  // "Saída: 22 de Setembro"
@@ -15,7 +15,7 @@ export type MultiStackedPdfData = {
   };
   options: Array<{
     index: number;           // 1, 2, 3, 4...
-    flights: Array<{ 
+    flights: Array<{
       flightCode: string;      // "LATAM Airlines 8084"
       fromAirport: string;     // "GUARULHOS INTERNATIONAL AIRPORT (GRU), SÃO PAULO, BRAZIL"
       toAirport: string;       // "HUMBERTO DELGADO AIRPORT (LIS), LISBON, PORTUGAL"
@@ -41,24 +41,24 @@ export type MultiStackedPdfData = {
 
 const S = StyleSheet.create({
   // Página A4, fundo branco, margens 28/32
-  page: { 
-    backgroundColor: "#ffffff", 
-    color: "#111827", 
-    paddingTop: 28, 
-    paddingHorizontal: 32, 
+  page: {
+    backgroundColor: "#ffffff",
+    color: "#111827",
+    paddingTop: 28,
+    paddingHorizontal: 32,
     paddingBottom: 28, // Volta ao padrão - rodapé será posicionado corretamente
-    fontSize: 12, 
+    fontSize: 12,
     lineHeight: 1.35,
     fontFamily: "Helvetica"
   },
-  
+
   // Cabeçalho (card) - compacto
-  headerCard: { 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    borderColor: "#E5E7EB", 
-    backgroundColor: "#FFFFFF", 
-    padding: 10, 
+  headerCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    padding: 10,
     marginBottom: 8,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -77,11 +77,11 @@ const S = StyleSheet.create({
     width: 180
   },
   headerTitle: { fontSize: 18, fontWeight: 700, marginBottom: 4, color: "#111827" },
-  headerClient: { 
-    fontSize: 11, 
-    fontWeight: 300, 
+  headerClient: {
+    fontSize: 11,
+    fontWeight: 300,
     fontStyle: 'italic',
-    color: "#6B7280", 
+    color: "#6B7280",
     marginBottom: 4,
     letterSpacing: 0.3
   },
@@ -91,7 +91,7 @@ const S = StyleSheet.create({
   headerDeparture: { fontSize: 9, color: "#374151", marginBottom: 2 },
   headerQuoteDate: { fontSize: 9, color: "#374151", marginBottom: 2 },
   headerDate: { fontSize: 9, fontWeight: 700, color: "#111827" },
-  
+
   // Metadados da cotação
   metadataCard: {
     borderRadius: 6,
@@ -122,7 +122,7 @@ const S = StyleSheet.create({
     flex: 1,
     color: "#111827"
   },
-  
+
   // Título da opção
   optionTitle: {
     fontSize: 11,
@@ -137,35 +137,35 @@ const S = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FED7AA"
   },
-  
+
   // Tabela (card único)
-  tableCard: { 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    borderColor: "#E5E7EB", 
-    overflow: "hidden", 
+  tableCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    overflow: "hidden",
     marginBottom: 8
   },
-  
+
   // Cabeçalho da tabela
-  tableHeader: { 
-    backgroundColor: "#0F172A", 
+  tableHeader: {
+    backgroundColor: "#0F172A",
     flexDirection: "row",
     paddingVertical: 4,
     paddingHorizontal: 6,
     minHeight: 24
   },
-  thText: { 
-    color: "#FFFFFF", 
-    fontSize: 9, 
+  thText: {
+    color: "#FFFFFF",
+    fontSize: 9,
     fontWeight: 700,
     textTransform: "uppercase",
     textAlign: "center",
     lineHeight: 1.2
   },
-  
+
   // Linhas da tabela
-  tableRow: { 
+  tableRow: {
     flexDirection: "row",
     paddingVertical: 6,
     paddingHorizontal: 6,
@@ -175,21 +175,21 @@ const S = StyleSheet.create({
     pageBreakInside: "avoid"
   },
   tableRowZebra: { backgroundColor: "#F9FAFB" },
-  
+
   // Colunas (larguras: [80, 180, 180, 100, 100])
   col1: { width: 80, fontSize: 10, fontWeight: 700, paddingRight: 8 },
   col2: { width: 180, fontSize: 9, lineHeight: 1.2, paddingRight: 8, paddingLeft: 12 },
   col3: { width: 180, fontSize: 9, lineHeight: 1.2, paddingRight: 8, paddingLeft: 12 },
   col4: { width: 100, fontSize: 9, textAlign: "center", paddingRight: 4 },
   col5: { width: 100, fontSize: 9, textAlign: "center" },
-  
+
   // Valores por cabine (layout horizontal compacto)
-  fareDetailsCard: { 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    borderColor: "#E5E7EB", 
-    backgroundColor: "#F3F4F6", 
-    padding: 10, 
+  fareDetailsCard: {
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F3F4F6",
+    padding: 10,
     marginBottom: 8,
     pageBreakInside: "avoid"
   },
@@ -262,7 +262,7 @@ const S = StyleSheet.create({
     alignSelf: "center",
     marginLeft: 8
   },
-  
+
   // Informações da cotação (design premium)
   quoteInfoCard: {
     backgroundColor: "#FFFFFF",
@@ -308,7 +308,7 @@ const S = StyleSheet.create({
   },
   quoteInfoValue: {
     fontSize: 10,
-    color: "#111827", 
+    color: "#111827",
     lineHeight: 1.3
   },
   quoteInfoObservation: {
@@ -334,7 +334,7 @@ const S = StyleSheet.create({
     lineHeight: 1.3,
     fontStyle: "italic"
   },
-  
+
   // Separador entre opções
   optionSeparator: {
     height: 1,
@@ -342,7 +342,7 @@ const S = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 1
   },
-  
+
   // Rodapé normal (não fixo) - posicionado no final do conteúdo
   disclaimerContainer: {
     marginTop: 20,
@@ -350,9 +350,9 @@ const S = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB"
   },
-  footerDisclaimer: { 
-    fontSize: 9, 
-    color: "#6B7280", 
+  footerDisclaimer: {
+    fontSize: 9,
+    color: "#6B7280",
     marginBottom: 8,
     lineHeight: 1.3,
     textAlign: "center"
@@ -375,31 +375,9 @@ const S = StyleSheet.create({
 
 const fUSD = (n: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
-// Função para mapear franquia de bagagem por classe
-const getBaggageAllowance = (classLabel: string): string => {
-  const label = classLabel.toLowerCase();
-  
-  if (label.includes('exe') || label.includes('executiva') || label.includes('business')) {
-    return '2pc 32kg';
-  } else if (label.includes('pre') || label.includes('premium')) {
-    return '2pc 23kg';
-  } else if (label.includes('eco') || label.includes('economica') || label.includes('economy')) {
-    return '1pc 23kg';
-  }
-  
-  // Fallback baseado no tipo de passageiro
-  if (label.includes('chd') || label.includes('child')) {
-    return '1pc 23kg';
-  }
-  
-  // Default para adulto
-  return '1pc 23kg';
-};
-
 export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPdfData }) {
   const totalOptions = data.options.length;
-  const hasBuffer = typeof (globalThis as any).Buffer !== 'undefined';
-  
+
   console.log('🔍 MultiStackedPdfDocument - Renderizando:', {
     totalOptions,
     options: data.options.map((o, i) => ({
@@ -409,400 +387,42 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
       hasManyFlights: o.flights.length > 6
     }))
   });
-  
+
   return (
     <Document>
       {data.options.flatMap((option, optionIndex) => {
         const isLastOption = optionIndex === totalOptions - 1;
         // Para cada opção, verificar se tem mais de 6 voos
         const hasManyFlights = option.flights.length > 6;
-        
+
         console.log(`🔍 Renderizando Opção ${optionIndex + 1}:`, {
           isLastOption,
           flightsCount: option.flights.length,
           hasManyFlights
         });
-        
+
         if (hasManyFlights) {
           // Dividir voos em grupos de 6 para uma única opção
-          const flightGroups = [];
+          const flightGroups: MultiStackedPdfData['options'][0]['flights'][] = [];
           for (let i = 0; i < option.flights.length; i += 6) {
             flightGroups.push(option.flights.slice(i, i + 6));
           }
-          
-          console.log(`🔍 Opção ${optionIndex + 1} tem ${option.flights.length} voos, dividindo em ${flightGroups.length} grupos`);
-          
-          // Renderizar múltiplas páginas para esta opção
-          return flightGroups.map((flightGroup, groupIndex) => {
-            console.log(`🔍 Renderizando grupo ${groupIndex + 1} da opção ${optionIndex + 1} com ${flightGroup.length} voos`);
-            return (
-            <Page key={`${optionIndex}-${groupIndex}`} size="A4" style={S.page}>
-              {/* Cabeçalho Premium - apenas na primeira página da primeira opção */}
-              {optionIndex === 0 && groupIndex === 0 && (
-        <View style={S.headerCard}>
-          <View style={S.headerContent}>
-            <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
-                    <Text style={S.headerClient}>
-                      Cliente: {data.metadata?.family || 'A definir'}
-                    </Text>
-            <View style={S.headerSeparator} />
-            <Text style={S.headerSubtitle}>Melhor valor com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
-            <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
-          </View>
-          <View style={S.headerLogo}>
-            {data.header.logoSrc ? (
-              <Image src={data.header.logoSrc} style={S.logo} />
-            ) : null}
-          </View>
-        </View>
-              )}
 
-              {/* Renderizar a opção com grupo de voos */}
-              <View>
-            {/* Título da opção */}
-            <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>
-
-                {/* Tabela de voos - apenas o grupo atual */}
-            <View style={S.tableCard}>
-              {/* Cabeçalho da tabela */}
-              <View style={S.tableHeader}>
-                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
-                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
-                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
-                <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
-                <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
-              </View>
-
-              {/* Linhas de voos - apenas do grupo atual */}
-              {flightGroup.map((flight, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
-                  <View style={S.col1}>
-                    <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
-                      {flight.flightCode.split(' ')[0]}
-                    </Text>
-                    <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
-                      {flight.flightCode.split(' ').slice(1).join(' ')}
-                    </Text>
-                  </View>
-                  <View style={S.col2}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col3}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col4}>
-                      {flight.departureWeekday && (
-                        <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                          {flight.departureWeekday}
-                        </Text>
-                      )}
-                      <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                        {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
-                      </Text>
-                      <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                        {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
-                      </Text>
-                    </View>
-                    <View style={S.col5}>
-                      {flight.arrivalWeekday && (
-                        <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                          {flight.arrivalWeekday}
-                        </Text>
-                      )}
-                      <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                        {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
-                      </Text>
-                      <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                        {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
-                      </Text>
-                    </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Valores por cabine */}
-            <View style={S.fareDetailsCard}>
-              <Text style={S.fareDetailsTitle}>VALORES POR CABINE</Text>
-              {option.fareDetails?.map((fare: any, fareIndex: number) => (
-                <View key={fareIndex} style={S.fareRow} wrap={false}>
-                  <View style={S.fareInfo}>
-                    <Text style={S.fareClassLabel}>{fare.classLabel}</Text>
-                    <Text style={S.fareBreakdown}>
-                      Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
-                    <Text style={S.fareBaggage}>{fare.baggage || getBaggageAllowance(fare.classLabel)}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* Informações da cotação - renderizar apenas no último grupo da última opção */}
-            {isLastOption && groupIndex === flightGroups.length - 1 && (
-              <View style={S.quoteInfoCard}>
-                <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA COTAÇÃO</Text>
-                
-                <View style={S.quoteInfoGrid}>
-                  <View style={S.quoteInfoItem}>
-                    <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
-                    <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
-                  </View>
-                  
-                  <View style={S.quoteInfoItem}>
-                    <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
-                    <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
-                  </View>
-                  
-                  <View style={S.quoteInfoItem}>
-                    <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
-                    <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
-                  </View>
-                  
-                  <View style={S.quoteInfoItem}>
-                    <Text style={S.quoteInfoLabel}>Reembolso</Text>
-                    <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
-                  </View>
-                </View>
-                
-                {/* Observação (se houver) */}
-                {data.metadata?.observation && (
-                  <View style={S.quoteInfoObservation}>
-                    <Text style={S.quoteInfoObservationLabel}>Observação</Text>
-                    <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-                {/* Disclaimer centralizado no final da página - APENAS NA ÚLTIMA OPÇÃO */}
-                {isLastOption && (
-                  <View style={S.disclaimerContainer}>
-                    <Text style={S.footerDisclaimer}>
-                      Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
-                    </Text>
-                    
-                    {/* Separador */}
-                    <View style={S.footerSeparator} />
-                    
-                    {/* Rodapé - 3 linhas alinhadas à direita */}
-                    <View style={S.footerContact}>
-                      <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
-                      <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
-                      <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
-                    </View>
-                  </View>
-                )}
-              </View>
-            </Page>
-            );
-          });
-        } else {
-          console.log(`🔍 Opção ${optionIndex + 1} tem ${option.flights.length} voos, renderizando com paginação inteligente`);
-          
           // Verificar se precisa de página extra para observações
           const hasObservations = data.metadata?.observation;
           const needsExtraPage = hasObservations && isLastOption;
-          
-          if (needsExtraPage) {
-            console.log(`🔍 Criando página extra para observações + rodapé`);
-            // Criar duas páginas: uma para o conteúdo principal, outra para observações + rodapé
-            return [
-              // Página 1: Conteúdo principal (sem observações)
-              <Page key={`${optionIndex}-main`} size="A4" style={S.page}>
-              {/* Cabeçalho Premium - apenas na primeira página */}
-              {optionIndex === 0 && (
-                <View style={S.headerCard}>
-                  <View style={S.headerContent}>
-                    <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
-                    <Text style={S.headerClient}>
-                      Cliente: {data.metadata?.family || 'A definir'}
-                    </Text>
-                    <View style={S.headerSeparator} />
-                    <Text style={S.headerSubtitle}>Melhor valor com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
-                    <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
-                  </View>
-                  <View style={S.headerLogo}>
-                  {data.header.logoSrc ? (
-                    <Image src={data.header.logoSrc} style={S.logo} />
-                    ) : null}
-                  </View>
-                </View>
-              )}
 
-              {/* Renderizar a opção atual */}
-              <View>
-                {/* Título da opção */}
-                <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>
+          const pages = flightGroups.map((group, groupIndex) => {
+            const isLastGroup = groupIndex === flightGroups.length - 1;
+            // O rodapé só aparece na última página de voos SE não houver página extra
+            const showFooter = isLastGroup && !needsExtraPage && isLastOption;
+            // Informações da cotação aparecem na última página de voos
+            const showQuoteInfo = isLastGroup;
 
-                {/* Tabela de voos */}
-                <View style={S.tableCard}>
-              {/* Cabeçalho da tabela */}
-              <View style={S.tableHeader}>
-                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
-                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
-                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
-                <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
-                <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
-              </View>
-
-              {/* Linhas de voos */}
-              {option.flights.map((flight, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
-                  <View style={S.col1}>
-                    <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
-                      {flight.flightCode.split(' ')[0]}
-                    </Text>
-                    <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
-                      {flight.flightCode.split(' ').slice(1).join(' ')}
-                    </Text>
-                  </View>
-                  <View style={S.col2}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col3}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col4}>
-                        {flight.departureWeekday && (
-                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                            {flight.departureWeekday}
-                          </Text>
-                        )}
-                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
-                        </Text>
-                      </View>
-                      <View style={S.col5}>
-                        {flight.arrivalWeekday && (
-                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                            {flight.arrivalWeekday}
-                          </Text>
-                        )}
-                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-
-                {/* Valores por cabine */}
-                {option.fareDetails && option.fareDetails.length > 0 && (
-                  <View style={S.fareDetailsCard}>
-                    <Text style={S.fareDetailsTitle}>VALORES POR CABINE</Text>
-                    {option.fareDetails.map((fare, fareIndex) => (
-                      <View key={fareIndex} style={S.fareRow} wrap={false}>
-                        <View style={S.fareInfo}>
-                          <Text style={S.fareClassLabel}>{fare.classLabel}</Text>
-                          <Text style={S.fareBreakdown}>
-                            Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}
-                          </Text>
-                        </View>
-                        <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
-          </View>
-        ))}
-                  </View>
-                )}
-
-                {/* Informações da cotação - renderizar apenas na última opção */}
-                {isLastOption && (
-                  <View style={S.quoteInfoCard}>
-                    <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA COTAÇÃO</Text>
-                    
-                    <View style={S.quoteInfoGrid}>
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
-                      </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
-                      </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
-                      </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Reembolso</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
-                      </View>
-                    </View>
-                    
-                    {/* Observação NÃO incluída na primeira página quando há página extra */}
-                  </View>
-                )}
-
-                {/* Rodapé NÃO incluído na primeira página quando há página extra */}
-              </View>
-            </Page>,
-            
-            // Página 2: Observações + Rodapé
-            <Page key={`${optionIndex}-footer`} size="A4" style={S.page}>
-              <View>
-                {/* Observação */}
-                {data.metadata?.observation && (
-                  <View style={S.quoteInfoObservation}>
-                    <Text style={S.quoteInfoObservationLabel}>Observação</Text>
-                    <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
-                  </View>
-                )}
-                
-                {/* Rodapé no final da página */}
-                <View style={S.disclaimerContainer}>
-                  <Text style={S.footerDisclaimer}>
-                    Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
-                  </Text>
-                  
-                  {/* Separador */}
-                  <View style={S.footerSeparator} />
-                  
-                  {/* Rodapé - 3 linhas alinhadas à direita */}
-                  <View style={S.footerContact}>
-                    <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
-                    <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
-                    <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
-                  </View>
-                </View>
-              </View>
-            </Page>
-          ];
-          } else {
-            // Caso normal: tudo em uma página
             return (
-              <Page key={optionIndex} size="A4" style={S.page}>
+              <Page key={`${optionIndex}-${groupIndex}`} size="A4" style={S.page}>
                 {/* Cabeçalho Premium - apenas na primeira página */}
-                {optionIndex === 0 && (
+                {optionIndex === 0 && groupIndex === 0 && (
                   <View style={S.headerCard}>
                     <View style={S.headerContent}>
                       <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
@@ -824,88 +444,57 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
 
                 {/* Renderizar a opção atual */}
                 <View>
-                  {/* Título da opção */}
-                  <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>
+                  {/* Título da opção - apenas na primeira página do grupo */}
+                  {groupIndex === 0 && <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>}
+                  {groupIndex > 0 && <Text style={S.optionTitle}>OPÇÃO {option.index} (Continuação)</Text>}
 
                   {/* Tabela de voos */}
                   <View style={S.tableCard}>
-              {/* Cabeçalho da tabela */}
-              <View style={S.tableHeader}>
-                <View style={S.col1}><Text style={S.thText}>VOO</Text></View>                                                                             
-                <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>                                                               
-                <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>                                                               
-                <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
-                <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
-              </View>
+                    <View style={S.tableHeader}>
+                      <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
+                      <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
+                      <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
+                      <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
+                      <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+                    </View>
 
-              {/* Linhas de voos */}
-              {option.flights.map((flight, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
-                  <View style={S.col1}>
-                    <Text style={{fontWeight: 700, fontSize: 9, lineHeight: 1.2}}>
-                      {flight.flightCode.split(' ')[0]}
-                    </Text>
-                    <Text style={{fontSize: 8, color: "#6B7280", lineHeight: 1.1}}>
-                      {flight.flightCode.split(' ').slice(1).join(' ')}
-                    </Text>
-                  </View>
-                  <View style={S.col2}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col3}>
-                    <Text style={{fontSize: 8, lineHeight: 1.2, color: "#374151"}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}
-                    </Text>
-                    <Text style={{fontSize: 7, color: "#6B7280", lineHeight: 1.1}}>
-                      {typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}
-                    </Text>
-                  </View>
-                  <View style={S.col4}>
-                        {flight.departureWeekday && (
-                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                            {flight.departureWeekday}
-                          </Text>
-                        )}
-                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                          {typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}
-                        </Text>
-                      </View>
-                      <View style={S.col5}>
-                        {flight.arrivalWeekday && (
-                          <Text style={{fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1}}>
-                            {flight.arrivalWeekday}
-                          </Text>
-                        )}
-                        <Text style={{fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827"}}>
-                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}
-                        </Text>
-                        <Text style={{fontSize: 7, textAlign: "center", color: "#6B7280"}}>
-                          {typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}
-                        </Text>
-                      </View>
+                    {group.map((flight, i) => (
+                      <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
+                        <View style={S.col1}>
+                          <Text style={{ fontWeight: 700, fontSize: 9, lineHeight: 1.2 }}>{flight.flightCode.split(' ')[0]}</Text>
+                          <Text style={{ fontSize: 8, color: "#6B7280", lineHeight: 1.1 }}>{flight.flightCode.split(' ').slice(1).join(' ')}</Text>
+                        </View>
+                        <View style={S.col2}>
+                          <Text style={{ fontSize: 8, lineHeight: 1.2, color: "#374151" }}>{typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}</Text>
+                          <Text style={{ fontSize: 7, color: "#6B7280", lineHeight: 1.1 }}>{typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}</Text>
+                        </View>
+                        <View style={S.col3}>
+                          <Text style={{ fontSize: 8, lineHeight: 1.2, color: "#374151" }}>{typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}</Text>
+                          <Text style={{ fontSize: 7, color: "#6B7280", lineHeight: 1.1 }}>{typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}</Text>
+                        </View>
+                        <View style={S.col4}>
+                          {flight.departureWeekday && <Text style={{ fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1 }}>{flight.departureWeekday}</Text>}
+                          <Text style={{ fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827" }}>{typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}</Text>
+                          <Text style={{ fontSize: 7, textAlign: "center", color: "#6B7280" }}>{typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}</Text>
+                        </View>
+                        <View style={S.col5}>
+                          {flight.arrivalWeekday && <Text style={{ fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1 }}>{flight.arrivalWeekday}</Text>}
+                          <Text style={{ fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827" }}>{typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}</Text>
+                          <Text style={{ fontSize: 7, textAlign: "center", color: "#6B7280" }}>{typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}</Text>
+                        </View>
                       </View>
                     ))}
                   </View>
 
-                  {/* Valores por cabine */}
-                  {option.fareDetails && option.fareDetails.length > 0 && (
+                  {/* Valores por cabine - apenas na última página do grupo */}
+                  {isLastGroup && option.fareDetails && option.fareDetails.length > 0 && (
                     <View style={S.fareDetailsCard}>
                       <Text style={S.fareDetailsTitle}>VALORES POR CABINE</Text>
                       {option.fareDetails.map((fare, fareIndex) => (
                         <View key={fareIndex} style={S.fareRow} wrap={false}>
                           <View style={S.fareInfo}>
                             <Text style={S.fareClassLabel}>{fare.classLabel}</Text>
-                            <Text style={S.fareBreakdown}>
-                              Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}
-                            </Text>
+                            <Text style={S.fareBreakdown}>Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}</Text>
                           </View>
                           <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
                         </View>
@@ -913,71 +502,219 @@ export default function MultiStackedPdfDocument({ data }: { data: MultiStackedPd
                     </View>
                   )}
 
-                  {/* Informações da cotação - renderizar apenas na última opção */}
-                {isLastOption && (
-                  <View style={S.quoteInfoCard}>
-                    <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA COTAÇÃO</Text>
-                    
-                    <View style={S.quoteInfoGrid}>
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
+                  {/* Informações da opção - apenas na última página do grupo */}
+                  {showQuoteInfo && (
+                    <View style={S.quoteInfoCard}>
+                      <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA OPÇÃO</Text>
+                      <View style={S.quoteInfoGrid}>
+                        <View style={S.quoteInfoItem}>
+                          <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
+                          <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
+                        </View>
+                        <View style={S.quoteInfoItem}>
+                          <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
+                          <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
+                        </View>
+                        <View style={S.quoteInfoItem}>
+                          <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
+                          <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
+                        </View>
+                        <View style={S.quoteInfoItem}>
+                          <Text style={S.quoteInfoLabel}>Reembolso</Text>
+                          <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
+                        </View>
                       </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
-                      </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
-                      </View>
-                      
-                      <View style={S.quoteInfoItem}>
-                        <Text style={S.quoteInfoLabel}>Reembolso</Text>
-                        <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
+                      {/* Observação só aparece aqui se NÃO houver página extra */}
+                      {!needsExtraPage && data.metadata?.observation && (
+                        <View style={S.quoteInfoObservation}>
+                          <Text style={S.quoteInfoObservationLabel}>Observação</Text>
+                          <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* Disclaimer - Apenas na última opção e se não houver página extra */}
+                  {showFooter && (
+                    <View style={S.disclaimerContainer}>
+                      <Text style={S.footerDisclaimer}>
+                        Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
+                      </Text>
+                      <View style={S.footerSeparator} />
+                      <View style={S.footerContact}>
+                        <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
+                        <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
+                        <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
                       </View>
                     </View>
-                    
-                    {/* Observação (se houver) */}
-                    {data.metadata?.observation && (
-                      <View style={S.quoteInfoObservation}>
-                        <Text style={S.quoteInfoObservationLabel}>Observação</Text>
-                        <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
+                  )}
+                </View>
+              </Page>
+            );
+          });
+
+          if (needsExtraPage) {
+            pages.push(
+              <Page key={`${optionIndex}-footer`} size="A4" style={S.page}>
+                <View>
+                  {/* Observação */}
+                  {data.metadata?.observation && (
+                    <View style={S.quoteInfoObservation}>
+                      <Text style={S.quoteInfoObservationLabel}>Observação</Text>
+                      <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
+                    </View>
+                  )}
+
+                  {/* Rodapé no final da página */}
+                  <View style={S.disclaimerContainer}>
+                    <Text style={S.footerDisclaimer}>
+                      Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
+                    </Text>
+                    <View style={S.footerSeparator} />
+                    <View style={S.footerContact}>
+                      <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
+                      <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
+                      <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
+                    </View>
+                  </View>
+                </View>
+              </Page>
+            );
+          }
+
+          return pages;
+        } else {
+          // Caso normal: tudo em uma página
+          return (
+            <Page key={optionIndex} size="A4" style={S.page}>
+              {/* Cabeçalho Premium - apenas na primeira página */}
+              {optionIndex === 0 && (
+                <View style={S.headerCard}>
+                  <View style={S.headerContent}>
+                    <Text style={S.headerTitle}>COTAÇÃO DE AÉREOS</Text>
+                    <Text style={S.headerClient}>
+                      Cliente: {data.metadata?.family || 'A definir'}
+                    </Text>
+                    <View style={S.headerSeparator} />
+                    <Text style={S.headerSubtitle}>Opção com: <Text style={S.headerCompany}>{data.header.subtitle}</Text></Text>
+                    <Text style={S.headerDeparture}>Saída: <Text style={S.headerDate}>{data.header.departureLabel}</Text></Text>
+                    <Text style={S.headerQuoteDate}>Data da Cotação: <Text style={S.headerDate}>{data.header.quoteDate}</Text></Text>
+                  </View>
+                  <View style={S.headerLogo}>
+                    {data.header.logoSrc ? (
+                      <Image src={data.header.logoSrc} style={S.logo} />
+                    ) : null}
+                  </View>
+                </View>
+              )}
+
+              {/* Renderizar a opção atual */}
+              <View>
+                {/* Título da opção */}
+                <Text style={S.optionTitle}>OPÇÃO {option.index}</Text>
+
+                {/* Tabela de voos */}
+                <View style={S.tableCard}>
+                  <View style={S.tableHeader}>
+                    <View style={S.col1}><Text style={S.thText}>VOO</Text></View>
+                    <View style={S.col2}><Text style={S.thText}>AEROPORTO PARTIDA</Text></View>
+                    <View style={S.col3}><Text style={S.thText}>AEROPORTO CHEGADA</Text></View>
+                    <View style={S.col4}><Text style={S.thText}>PARTIDA</Text></View>
+                    <View style={S.col5}><Text style={S.thText}>CHEGADA</Text></View>
+                  </View>
+
+                  {option.flights.map((flight, i) => (
+                    <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowZebra : {}]} wrap={false}>
+                      <View style={S.col1}>
+                        <Text style={{ fontWeight: 700, fontSize: 9, lineHeight: 1.2 }}>{flight.flightCode.split(' ')[0]}</Text>
+                        <Text style={{ fontSize: 8, color: "#6B7280", lineHeight: 1.1 }}>{flight.flightCode.split(' ').slice(1).join(' ')}</Text>
                       </View>
-                    )}
+                      <View style={S.col2}>
+                        <Text style={{ fontSize: 8, lineHeight: 1.2, color: "#374151" }}>{typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[0].trim() : flight.fromAirport || ''}</Text>
+                        <Text style={{ fontSize: 7, color: "#6B7280", lineHeight: 1.1 }}>{typeof flight.fromAirport === 'string' ? flight.fromAirport.split('(')[1]?.replace(')', '') || '' : ''}</Text>
+                      </View>
+                      <View style={S.col3}>
+                        <Text style={{ fontSize: 8, lineHeight: 1.2, color: "#374151" }}>{typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[0].trim() : flight.toAirport || ''}</Text>
+                        <Text style={{ fontSize: 7, color: "#6B7280", lineHeight: 1.1 }}>{typeof flight.toAirport === 'string' ? flight.toAirport.split('(')[1]?.replace(')', '') || '' : ''}</Text>
+                      </View>
+                      <View style={S.col4}>
+                        {flight.departureWeekday && <Text style={{ fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1 }}>{flight.departureWeekday}</Text>}
+                        <Text style={{ fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827" }}>{typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[0] : flight.departureDateTime || ''}</Text>
+                        <Text style={{ fontSize: 7, textAlign: "center", color: "#6B7280" }}>{typeof flight.departureDateTime === 'string' ? flight.departureDateTime.split(' ')[1] || '' : ''}</Text>
+                      </View>
+                      <View style={S.col5}>
+                        {flight.arrivalWeekday && <Text style={{ fontSize: 6, textAlign: "center", color: "#9CA3AF", textTransform: "lowercase", marginBottom: 1 }}>{flight.arrivalWeekday}</Text>}
+                        <Text style={{ fontSize: 8, textAlign: "center", fontWeight: 600, color: "#111827" }}>{typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[0] : flight.arrivalDateTime || ''}</Text>
+                        <Text style={{ fontSize: 7, textAlign: "center", color: "#6B7280" }}>{typeof flight.arrivalDateTime === 'string' ? flight.arrivalDateTime.split(' ')[1] || '' : ''}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+
+                {/* Valores por cabine */}
+                {option.fareDetails && option.fareDetails.length > 0 && (
+                  <View style={S.fareDetailsCard}>
+                    <Text style={S.fareDetailsTitle}>VALORES POR CABINE</Text>
+                    {option.fareDetails.map((fare, fareIndex) => (
+                      <View key={fareIndex} style={S.fareRow} wrap={false}>
+                        <View style={S.fareInfo}>
+                          <Text style={S.fareClassLabel}>{fare.classLabel}</Text>
+                          <Text style={S.fareBreakdown}>Tarifa: {fUSD(fare.baseFare)} + Taxas: {fUSD(fare.taxes)}</Text>
+                        </View>
+                        <Text style={S.fareTotal}>{fUSD(fare.total)}</Text>
+                      </View>
+                    ))}
                   </View>
                 )}
 
-                  {/* Rodapé no final da página - APENAS NA ÚLTIMA OPÇÃO */}
+                {/* Informações da opção */}
+                <View style={S.quoteInfoCard}>
+                  <Text style={S.quoteInfoTitle}>INFORMAÇÕES DA OPÇÃO</Text>
+                  <View style={S.quoteInfoGrid}>
+                    <View style={S.quoteInfoItem}>
+                      <Text style={S.quoteInfoLabel}>Franquia de bagagem</Text>
+                      <Text style={S.quoteInfoValue}>{option.footer.baggage}</Text>
+                    </View>
+                    <View style={S.quoteInfoItem}>
+                      <Text style={S.quoteInfoLabel}>Forma de pagamento</Text>
+                      <Text style={S.quoteInfoValue}>{option.footer.payment}</Text>
+                    </View>
+                    <View style={S.quoteInfoItem}>
+                      <Text style={S.quoteInfoLabel}>Multa para alteração</Text>
+                      <Text style={S.quoteInfoValue}>{option.footer.penalty}</Text>
+                    </View>
+                    <View style={S.quoteInfoItem}>
+                      <Text style={S.quoteInfoLabel}>Reembolso</Text>
+                      <Text style={S.quoteInfoValue}>{option.footer.refundable}</Text>
+                    </View>
+                  </View>
+                  {data.metadata?.observation && (
+                    <View style={S.quoteInfoObservation}>
+                      <Text style={S.quoteInfoObservationLabel}>Observação</Text>
+                      <Text style={S.quoteInfoObservationValue}>{data.metadata.observation}</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Disclaimer - Apenas na última opção */}
                 {isLastOption && (
-        <View style={S.disclaimerContainer}>
-          <Text style={S.footerDisclaimer}>
-            Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
-          </Text>
-          
-          {/* Separador */}
-          <View style={S.footerSeparator} />
-          
-          {/* Rodapé - 3 linhas alinhadas à direita */}
-          <View style={S.footerContact}>
-            <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
-            <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
-            <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
-          </View>
+                  <View style={S.disclaimerContainer}>
+                    <Text style={S.footerDisclaimer}>
+                      Valores somente cotados, nenhuma reserva foi efetuada. Valores e disponibilidade sujeitos a alteração até o momento da emissão das reservas.
+                    </Text>
+                    <View style={S.footerSeparator} />
+                    <View style={S.footerContact}>
+                      <Text style={S.footerContactLine}>www.setemaresturismo.com.br</Text>
+                      <Text style={S.footerContactLine}>Tel: (+5511) 3121-2888</Text>
+                      <Text style={S.footerContactLine}>Rua Dr. Renato Paes de Barros, 33 - 1º andar - Itaim Bibi - SP 04530-001</Text>
+                    </View>
                   </View>
                 )}
-        </View>
-      </Page>
+              </View>
+            </Page>
           );
-          }
         }
       })}
     </Document>
   );
 }
-
-
-
-

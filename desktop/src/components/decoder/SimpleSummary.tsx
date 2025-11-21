@@ -74,7 +74,26 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFli
   const finalNumParcelas = numParcelas || pnrData?.numParcelas || 4;
   const paymentTerms = pnrData?.paymentTerms || `Em até ${finalNumParcelas}x no cartão de crédito. Taxas à vista.`;
 
-  const baggage = pnrData?.baggage ?? DEFAULT_BAGGAGE;
+  // Converter baggage de array para string
+  const baggage = (() => {
+    const baggageData = pnrData?.baggage;
+    if (!baggageData) return DEFAULT_BAGGAGE;
+
+    // Se já é string, retornar diretamente
+    if (typeof baggageData === 'string') return baggageData;
+
+    // Se é array de objetos, converter para string
+    if (Array.isArray(baggageData)) {
+      return baggageData
+        .map((bag: any) => {
+          const classLabel = bag.fareClass ? `/${bag.fareClass}` : '';
+          return `${bag.pieces}pc ${bag.pieceKg}kg${classLabel}`;
+        })
+        .join(', ') || DEFAULT_BAGGAGE;
+    }
+
+    return DEFAULT_BAGGAGE;
+  })();
   // Priorizar observações dos Metadados da Cotação, depois notes do PNR
   const notes = pnrData?.observation || pnrData?.notes || '';
 
@@ -231,10 +250,10 @@ export function SimpleSummary({ pnrData, pricingResult, updatedFares, decodedFli
                     </div>
                   </div>
                   <div className={`text-xl font-bold ${comparisonData.priceDifference > 0
-                      ? 'text-red-400'
-                      : comparisonData.priceDifference < 0
-                        ? 'text-green-400'
-                        : 'text-slate-400'
+                    ? 'text-red-400'
+                    : comparisonData.priceDifference < 0
+                      ? 'text-green-400'
+                      : 'text-slate-400'
                     }`}>
                     {comparisonData.priceDifference > 0 ? '+' : ''}
                     USD {formatCurrency(Math.abs(comparisonData.priceDifference))}
